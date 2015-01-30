@@ -30,9 +30,21 @@ filetype plugin indent on    " required
 " Put your non-Plugin stuff after this line
 
 syntax on
-set number
-set backspace=indent,eol,start
-set splitright
+set number	  " display line numbers
+set backspace=indent,eol,start " allow backspacing over everything in insert mode
+set textwidth=80  " lines longer than 80 columns will be broken
+set shiftwidth=4  " operation >> indents 4 columns; << unindents 4 columns
+set tabstop=4     " a hard TAB displays as 4 columns
+set expandtab     " insert spaces when hitting TABs
+set softtabstop=4 " insert/delete 4 spaces when hitting a TAB/BACKSPACE
+set shiftround    " round indent to multiple of 'shiftwidth'
+set autoindent    " align the new line indent with the previous line
+set cursorline    " highlight current line
+set wildmenu      " visual autocomplete for command menu
+set splitright 	  " opens vert split windows from the right
+set incsearch           " search as characters are entered
+set hlsearch            " highlight matches
+" nnoremap <leader><space> :nohlsearch<CR>    " turns off search highlight
 
 function! RunPython(winWidth)
 	execute 'w'
