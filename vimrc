@@ -11,8 +11,11 @@ call vundle#begin()
 Plugin 'gmarik/Vundle.vim'
 " Keep Plugin commands between vundle#begin/end.
 
+" provides autocompletion 
 Plugin 'Valloric/YouCompleteMe'
-"provides autocompletion more info at: https://github.com/Valloric/YouCompleteMe
+
+" lets vim run python and see output asynchronously
+"Plugin 'akyle9/vimRunPython'
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -29,10 +32,20 @@ filetype plugin indent on    " required
 " see :h vundle for more details or wiki for FAQ
 " Put your non-Plugin stuff after this line
 
+" close YCM's extra info window after leaving insert
+let g:ycm_autoclose_preview_window_after_insertion=1 
+
+let mapleader = ","
+
+autocmd BufRead *.py nnoremap <leader>e :w \| silent execute"!clear;python -i %" \| redraw!<CR>
+
 syntax on
 set number	  " display line numbers
+set ruler
 set backspace=indent,eol,start " allow backspacing over everything in insert mode
-set textwidth=80  " lines longer than 80 columns will be broken
+"set textwidth=80  " lines longer than 80 columns will be broken
+set colorcolumn=80
+highlight ColorColumn ctermbg=235 guibg=#2c2d27
 set shiftwidth=4  " operation >> indents 4 columns; << unindents 4 columns
 set tabstop=4     " a hard TAB displays as 4 columns
 set expandtab     " insert spaces when hitting TABs
@@ -43,26 +56,8 @@ set cursorline    " highlight current line
 set wildmenu      " visual autocomplete for command menu
 set splitright 	  " opens vert split windows from the right
 set incsearch           " search as characters are entered
-set hlsearch            " highlight matches
+set foldmethod=indent    "set code folding to fold on indents
+set nofoldenable         " so code isn't folded when file is opened
+"set hlsearch            " highlight matches
 " nnoremap <leader><space> :nohlsearch<CR>    " turns off search highlight
-
-function! RunPython(winWidth)
-	execute 'w'
-	let filePath = expand('%:p')
-	if !bufexists('python')
-		execute a:winWidth.'vnew'
-		execute 'silent file python'
-		setlocal buftype=nofile
-		setlocal bufhidden=hide
-		setlocal noswapfile
-	endif
-	if bufwinnr('python') == -1
-		execute a:winWidth.'vsplit python'
-	endif
-	execute bufwinnr('python').'wincmd w'
-	execute 'silent %d'
-	execute 'silent 0r !python '.'"'.filePath.'"'
- 	"execute 'normal G dd'
-	execute 'wincmd p'
-endfunction
-map <C-b> :call RunPython(90) <CR>
+inoremap jj <Esc>
