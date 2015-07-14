@@ -37,27 +37,36 @@ let g:ycm_autoclose_preview_window_after_insertion=1
 
 let mapleader = ","
 
-autocmd BufRead *.py nnoremap <leader>e :w \| silent execute"!clear;python -i %" \| redraw!<CR>
-
 syntax on
 set number	  " display line numbers
-set ruler
+set ruler     " show cursor position all the time (overridden by statusline)
 set backspace=indent,eol,start " allow backspacing over everything in insert mode
 "set textwidth=80  " lines longer than 80 columns will be broken
 set colorcolumn=80
 highlight ColorColumn ctermbg=235 guibg=#2c2d27
 set shiftwidth=4  " operation >> indents 4 columns; << unindents 4 columns
-set tabstop=4     " a hard TAB displays as 4 columns
+set tabstop=4     " sets number of spaces per tab
 set expandtab     " insert spaces when hitting TABs
 set softtabstop=4 " insert/delete 4 spaces when hitting a TAB/BACKSPACE
 set shiftround    " round indent to multiple of 'shiftwidth'
 set autoindent    " align the new line indent with the previous line
 set cursorline    " highlight current line
+set report=0      " reports when lines are changed via ':' commands
 set wildmenu      " visual autocomplete for command menu
 set splitright 	  " opens vert split windows from the right
-set incsearch           " search as characters are entered
-set foldmethod=indent    "set code folding to fold on indents
-set nofoldenable         " so code isn't folded when file is opened
-"set hlsearch            " highlight matches
-" nnoremap <leader><space> :nohlsearch<CR>    " turns off search highlight
+set incsearch     " search as characters are entered
+set nofoldenable  " so code isn't folded when file is opened
+set clipboard=unnamed " copy/paste to and from system clipboard to default register
+set ignorecase    " search not case sensitive
+set smartcase     " uppercase searches are case sensitive
+set hlsearch      " highlight matches
+nnoremap <leader><space> :nohlsearch<CR>    " turns off search highlight
 inoremap jj <Esc>
+" Fix annoying line-skipping behavior on long lines
+nnoremap j gj
+nnoremap k gk
+
+" for Python files, use indent, not syntax, for folding
+autocmd BufNewFile,BufRead *.py set foldmethod=indent
+
+autocmd BufNewFile,BufRead *.py nnoremap <leader>e :w \| silent execute"!clear;python -i %" \| redraw!<CR>
