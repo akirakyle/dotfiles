@@ -1,2 +1,2 @@
-# vim
-For now just my .vimrc file. Feel free to use any part of it you like :)
+# dotfiles
+My vim and emacs dotfiles. Feel free to use any part of them that you'd like :)
