@@ -45,6 +45,10 @@
                                  (count-lines (point-min) (point-max))))))
                 (concat " %" (number-to-string w) "d " ))))))
 
+;(setq TeX-PDF-mode t)
+;(TeX-global-PDF-mode t)
+(setq latex-run-command "pdflatex")
+
 (global-hl-line-mode 1)
 ;;(set-face-attribute hl-line-face nil :underline t)
 ;;(set-face-background 'highlight "#222")
@@ -98,9 +102,32 @@
   ;;(other-window 1)
   (python-shell-send-buffer) )
 
+(defun exec-latex()
+  (interactive)
+  (save-buffer)
+  (tex-file)
+  (message nil)
+  (other-window 1)
+  (delete-window) )
+
+(defun save-and-recompile()
+  (interactive)
+  (save-buffer)
+  (recompile) )
+
+(defun halve-other-window-height ()
+  "Expand current window to use half of the other window's lines."
+  (interactive)
+  (enlarge-window (/ (window-height (next-window)) 2)))
 
 (evil-leader/set-key-for-mode 'python-mode "e" 'exec-python)
-;;(evil-leader/set-key "e" 'exec-python)
+(evil-leader/set-key-for-mode 'latex-mode "e" 'exec-latex)
+(evil-leader/set-key-for-mode 'c0-mode "e" 'save-and-recompile)
+(evil-leader/set-key-for-mode 'c-mode "e" 'save-and-recompile)
+(evil-leader/set-key-for-mode 'c++-mode "e" 'save-and-recompile)
+(evil-leader/set-key-for-mode 'sml-mode "e" 'sml-prog-proc-load-file)
+
+(evil-leader/set-key "r" 'halve-other-window-height)
 
 (setq backup-directory-alist `(("." . "~/.emacs_saves")))
 (setq backup-by-copying t)
@@ -114,7 +141,7 @@
 ;;(load (concat c0-root "c0-mode/c0.el"))
 (setq c0-root "/usr/local/cc0/")
 (load (concat c0-root "c0-mode/c0.el"))
-(require 'cl)
+(require 'cl) ;; require comomn lisp
 
 ;; Other configuration options that are useful for C0/122
 (show-paren-mode) ;; Highlights the matching paren.
