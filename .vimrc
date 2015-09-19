@@ -11,7 +11,7 @@ call vundle#begin()
 Plugin 'gmarik/Vundle.vim'
 " Keep Plugin commands between vundle#begin/end.
 
-" provides autocompletion 
+" provides autocompletion
 Plugin 'Valloric/YouCompleteMe'
 
 " lets vim run python and see output asynchronously
@@ -33,7 +33,7 @@ filetype plugin indent on    " required
 " Put your non-Plugin stuff after this line
 
 " close YCM's extra info window after leaving insert
-let g:ycm_autoclose_preview_window_after_insertion=1 
+let g:ycm_autoclose_preview_window_after_insertion=1
 
 let mapleader = ","
 
@@ -54,19 +54,45 @@ set cursorline    " highlight current line
 set report=0      " reports when lines are changed via ':' commands
 set wildmenu      " visual autocomplete for command menu
 set splitright 	  " opens vert split windows from the right
-set incsearch     " search as characters are entered
 set nofoldenable  " so code isn't folded when file is opened
 set clipboard=unnamed " copy/paste to and from system clipboard to default register
+set incsearch     " search as characters are entered
 set ignorecase    " search not case sensitive
 set smartcase     " uppercase searches are case sensitive
 set hlsearch      " highlight matches
+
+set showmatch  "Highlight matching braces
+set formatoptions=croq  "Enable comment line auto formatting
+set title  "Set window title to file
+set autochdir  "Change directory to currently open file
+set wrap  "Visually wrap lines
+set linebreak  "Only wrap on 'good' characters for wrapping
+set ttyfast  "Speed up vim
+set nostartofline "Vertical movement preserves horizontal position
+set lazyredraw  "Don't redraw while running macros (faster)
+" Strip whitespace from end of lines when writing file
+autocmd BufWritePre * :%s/\s\+$//e
+
 nnoremap <leader><space> :nohlsearch<CR>    " turns off search highlight
 inoremap jj <Esc>
 " Fix annoying line-skipping behavior on long lines
 nnoremap j gj
 nnoremap k gk
+nnoremap ; :
+
+nnoremap <leader>m :make! <CR> :copen <CR>
 
 " for Python files, use indent, not syntax, for folding
 autocmd BufNewFile,BufRead *.py set foldmethod=indent
 
-autocmd BufNewFile,BufRead *.py nnoremap <leader>e :w \| silent execute"!clear;python -i %" \| redraw!<CR>
+autocmd BufNewFile,BufRead *.py nnoremap <leader>e :w <bar> silent execute"!clear;python -i %" <bar> redraw!<CR>
+
+autocmd BufNewFile,BufRead *.cpp nnoremap <leader>e :w <bar> execute"!clear;make;make exec <bar> bash" <bar> redraw!<CR>
+
+autocmd BufNewFile,BufRead *.tex nnoremap <leader>e :w <bar> silent execute"!clear;pdflatex %" <bar> redraw!<CR>
+
+autocmd BufNewFile,BufRead *.sml nnoremap <leader>e :w <bar> execute"!clear;rlwrap sml %" <bar> redraw!<CR>
+
+autocmd BufRead,BufNewFile *.c0 set filetype=c0
+
+autocmd BufNewFile,BufRead *.c0 nnoremap <leader>e :w <bar> execute"!clear;make;make progName <bar> bash" <bar> redraw!<CR>
