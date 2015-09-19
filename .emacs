@@ -25,6 +25,8 @@
 
 (add-hook 'prog-mode-hook 'highlight-numbers-mode)
 
+(global-visual-line-mode 1)
+
 ;; Line numbers
 (global-linum-mode t)
 (unless window-system
@@ -54,6 +56,7 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace) ;; No trailing spaces
 (setq require-final-newline t) ;; Good practice.
 (setq-default indent-tabs-mode nil) ;; Don't indent with tabs.
+(setq inhibit-splash-screen t); Disable splash screen
 
 (xclip-mode 1) ;; copy and paste to system clipboard
 (menu-bar-mode -1)
@@ -78,53 +81,6 @@
 ;; Fixes 'Invalid function: evil-without-input-method-hooks' error when using evil search
 (evil-select-search-module 'evil-search-module 'evil-search)
 
-
-;(setq TeX-PDF-mode t)
-;(require 'tex)
-;(TeX-global-PDF-mode t)
-;(setq latex-run-command "pdflatex")
-;;Latex stuff .........................
-;; AucTeX
-;(setq TeX-auto-save t)
-;(setq TeX-parse-self t)
-;(setq-default TeX-master nil)
-;(add-hook 'LaTeX-mode-hook 'visual-line-mode)
-;(add-hook 'LaTeX-mode-hook 'flyspell-mode)
-;(add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
-;(add-hook 'LaTeX-mode-hook 'turn-on-reftex)
-;(setq reftex-plug-into-AUCTeX t)
-(setq TeX-PDF-mode t)
-;; Use Skim as viewer, enable source <-> PDF sync
-;; make latexmk available via C-c C-c
-;; Note: SyncTeX is setup via ~/.latexmkrc (see below)
-;(add-hook 'LaTeX-mode-hook (lambda ()
-;  (push
-;    '("latexmk" "latexmk -pdf %s" TeX-run-TeX nil t
-;      :help "Run latexmk on file")
-;    TeX-command-list)))
-;(add-hook 'TeX-mode-hook '(lambda () (setq TeX-command-default "latexmk")))
-;; use Skim as default pdf viewer
-;; Skim's displayline is used for forward search (from .tex to .pdf)
-;; option -b highlights the current line; option -g opens Skim in the background
-;(setq TeX-view-program-selection '((output-pdf "PDF Viewer")))
-;(setq TeX-view-program-list
-     ;'(("PDF Viewer" "/Applications/Skim.app/Contents/SharedSupport/displayline -b -g %n %o %b")))
-;; end latex stuff .......
-
-
-;; auto-compliete config
-(ac-config-default)
-(global-auto-complete-mode t)
-(add-to-list 'ac-modes 'latex-mode)
-(add-to-list 'ac-modes 'sml-mode)
-(add-to-list 'ac-modes 'c0-mode)
-(add-to-list 'ac-modes 'makefile-mode)
-(add-to-list 'ac-modes 'makefile-bsdmake-mode)
-
-(setq ac-auto-show-menu    0)
-(setq ac-delay             0)
-(setq ac-show-menu-immediately-on-auto-complete t)
-
 (global-set-key (kbd "C-?") 'help-command)
 (global-set-key (kbd "M-?") 'mark-paragraph)
 (global-set-key (kbd "C-h") 'delete-backward-char)
@@ -148,12 +104,47 @@
 (define-key evil-visual-state-map "\C-p" 'evil-previous-line)
 (define-key evil-normal-state-map (kbd ";") 'evil-ex)
 
+;; auto-compliete config
+(ac-config-default)
+(global-auto-complete-mode t)
+(add-to-list 'ac-modes 'LaTeX-mode)
+(add-to-list 'ac-modes 'sml-mode)
+(add-to-list 'ac-modes 'c0-mode)
+(add-to-list 'ac-modes 'c-mode)
+(add-to-list 'ac-modes 'c++-mode)
+(add-to-list 'ac-modes 'makefile-mode)
+(add-to-list 'ac-modes 'makefile-bsdmake-mode)
+
+(setq ac-auto-show-menu    0)
+(setq ac-delay             0)
+(setq ac-show-menu-immediately-on-auto-complete t)
+
+;; AucTex config
+(setq TeX-PDF-mode t)
+(setq TeX-auto-save t)
+(setq TeX-parse-self t)
+;(setq-default TeX-master nil) ; relevant to multifile tex projects
+(add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+
+(add-hook 'LaTeX-mode-hook 'flyspell-mode)
+(add-hook 'lisp-mode (lambda () (flyspell-prog-mode)))
+(add-hook 'c++-mode-hook (lambda () (flyspell-prog-mode)))
+(add-hook 'c-mode (lambda () (flyspell-prog-mode)))
+(add-hook 'python-mode (lambda () (flyspell-prog-mode)))
+(add-hook 'sml-mode (lambda () (flyspell-prog-mode)))
+(add-hook 'c0-mode (lambda () (flyspell-prog-mode)))
+
 (defun exec-python()
   (interactive)
-  ;;(python-shell-switch-to-shell)
+  (when (get-process "Python")
+      (delete-process "Python"))
+  (when (get-buffer "*Python*")
+    (switch-to-buffer "*Python*")
+    (erase-buffer)
+    (switch-to-buffer (other-buffer)) )
   (python-shell-get-or-create-process "/usr/bin/python -i" nil t)
-  ;;(other-window 1)
-  (python-shell-send-buffer) )
+  (python-shell-send-file (buffer-file-name))
+  (other-window 1) )
 
 (defun exec-sml()
   (interactive)
@@ -171,13 +162,17 @@
   ;(when (> (count-windows) 1)
   ;  (other-window 1) ) )
 
+
 (defun exec-latex()
   (interactive)
   (save-buffer)
-  (tex-file)
-  (message nil)
-  (other-window 1)
-  (delete-window) )
+  (TeX-command-master) )
+  ;(interactive)
+  ;(save-buffer)
+  ;(tex-file)
+  ;(message nil)
+  ;(other-window 1)
+  ;(delete-window) )
 
 (defun save-and-recompile()
   (interactive)
@@ -190,7 +185,7 @@
   (enlarge-window (/ (window-height (next-window)) 2)))
 
 (evil-leader/set-key-for-mode 'python-mode "e" 'exec-python)
-(evil-leader/set-key-for-mode 'latex-mode "e" 'TeX-command-master)
+(evil-leader/set-key-for-mode 'latex-mode "e" 'exec-latex)
 (evil-leader/set-key-for-mode 'c0-mode "e" 'save-and-recompile)
 (evil-leader/set-key-for-mode 'c-mode "e" 'save-and-recompile)
 (evil-leader/set-key-for-mode 'c++-mode "e" 'save-and-recompile)
