@@ -3,18 +3,19 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(evil-shift-width 2))
+ '(custom-enabled-themes nil)
+ '(doc-view-continuous t)
+ '(evil-shift-width 2)
+ '(shell-file-name "/usr/local/bin/bash"))
+(setq ring-bell-function 'ignore)
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(font-lock-comment-face ((t (:foreground "gray30"))))
- '(font-lock-constant-face ((t (:foreground "green"))))
- '(font-lock-function-name-face ((t (:foreground "turquoise2"))))
- '(font-lock-string-face ((t (:foreground "Firebrick"))))
- '(lazy-highlight ((t (:background "yellow")))))
+ )
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
 
 (require 'package)  ;; should be first in .emacs file
   (push '("marmalade" . "http://marmalade-repo.org/packages/")
@@ -23,19 +24,24 @@
         package-archives)
 (package-initialize)
 
+(when (memq window-system '(mac ns))
+  (exec-path-from-shell-initialize))
+
+(load-theme `base16-pop-dark t)
+
 (add-hook 'prog-mode-hook 'highlight-numbers-mode)
 
 (global-visual-line-mode 1)
 
 ;; Line numbers
-(global-linum-mode t)
-(unless window-system
-    (add-hook 'linum-before-numbering-hook
-        (lambda ()
-            (setq-local linum-format
-                (let ((w (length (number-to-string
-                                 (count-lines (point-min) (point-max))))))
-                (concat " %" (number-to-string w) "d " ))))))
+;(global-linum-mode t)
+;(unless window-system
+    ;(add-hook 'linum-before-numbering-hook
+        ;(lambda ()
+            ;(setq-local linum-format
+                ;(let ((w (length (number-to-string
+                                 ;(count-lines (point-min) (point-max))))))
+                ;(concat " %" (number-to-string w) "d " ))))))
 
 ;; Horizontal cursor line and customize its appearance (to be like vim's cursor line)
 (global-hl-line-mode 1)
@@ -58,8 +64,12 @@
 (setq-default indent-tabs-mode nil) ;; Don't indent with tabs.
 (setq inhibit-splash-screen t); Disable splash screen
 
-(xclip-mode 1) ;; copy and paste to system clipboard
-(menu-bar-mode -1)
+
+(require 'whitespace)
+(setq whitespace-line-column 80) ;; limit line length
+(setq whitespace-style '(face lines-tail))
+
+(add-hook 'prog-mode-hook 'whitespace-mode)
 
 ;; Evil Setup
 (require 'evil-leader)
@@ -78,8 +88,17 @@
 (key-chord-mode 1)
 (key-chord-define evil-insert-state-map  "jj" 'evil-normal-state)
 
+(define-key evil-normal-state-map (kbd "j") 'evil-next-visual-line)
+(define-key evil-normal-state-map (kbd "k") 'evil-previous-visual-line)
+
 ;; Fixes 'Invalid function: evil-without-input-method-hooks' error when using evil search
 (evil-select-search-module 'evil-search-module 'evil-search)
+
+(xclip-mode 1) ;; copy and paste to system clipboard
+
+;; use ido to open files
+(define-key evil-ex-map "e " 'ido-find-file)
+(define-key evil-ex-map "b " 'ido-switch-buffer)
 
 (global-set-key (kbd "C-?") 'help-command)
 (global-set-key (kbd "M-?") 'mark-paragraph)
@@ -104,10 +123,11 @@
 (define-key evil-visual-state-map "\C-p" 'evil-previous-line)
 (define-key evil-normal-state-map (kbd ";") 'evil-ex)
 
-;; auto-compliete config
-(ac-config-default)
-(global-auto-complete-mode t)
-(add-to-list 'ac-modes 'LaTeX-mode)
+;; auto-complete config
+(require 'auto-complete)
+(require 'ac-math)
+(setq ac-disable-faces nil) ; auto-complete inside stuff like comments and strings
+(add-to-list 'ac-modes 'latex-mode)
 (add-to-list 'ac-modes 'sml-mode)
 (add-to-list 'ac-modes 'c0-mode)
 (add-to-list 'ac-modes 'c-mode)
@@ -115,13 +135,25 @@
 (add-to-list 'ac-modes 'makefile-mode)
 (add-to-list 'ac-modes 'makefile-bsdmake-mode)
 
-(setq ac-auto-show-menu    0)
+(defun ac-latex-mode-setup ()         ; add ac-sources to default ac-sources
+  (setq ac-sources
+     (append '(ac-source-math-unicode ac-source-math-latex ac-source-latex-commands)
+               ac-sources)))
+
+(add-hook 'TeX-mode-hook 'ac-latex-mode-setup)
+(add-hook 'doc-view-mode-hook 'auto-revert-mode) ; so I can use docview and auctex together!
+
+(ac-flyspell-workaround) ; fixes a known bug of delay due to flyspell (if it is there)
+;(require 'auto-complete-config) ; should be after add-to-list 'ac-modes and hooks
+(ac-config-default)
+(setq ac-auto-show-menu    t)
 (setq ac-delay             0)
 (setq ac-show-menu-immediately-on-auto-complete t)
+(global-auto-complete-mode t)
 
 ;; AucTex config
 (setq TeX-PDF-mode t)
-(setq TeX-auto-save t)
+;(setq TeX-auto-save t)
 (setq TeX-parse-self t)
 ;(setq-default TeX-master nil) ; relevant to multifile tex projects
 (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
@@ -200,3 +232,25 @@
 (setq c0-root "/usr/local/cc0/")
 (load (concat c0-root "c0-mode/c0.el"))
 (require 'cl) ;; require comomn lisp
+
+;(defun copy-from-osx ()
+;  "Handle copy/paste intelligently on osx."
+;  (let ((pbpaste (purecopy "/usr/bin/pbpaste")))
+;    (if (and (eq system-type 'darwin)
+;             (file-exists-p pbpaste))
+;        (let ((tramp-mode nil)
+;              (default-directory "~"))
+;          (shell-command-to-string pbpaste)))))
+;
+;(defun paste-to-osx (text &optional push)
+;  (let ((process-connection-type nil))
+;    (let ((proc (start-process "pbcopy" "*Messages*" "pbcopy")))
+;      (process-send-string proc text)
+;      (process-send-eof proc))))
+
+;(setq interprogram-cut-function 'paste-to-osx)
+;(setq interprogram-paste-function 'copy-from-osx)
+
+(put 'dired-find-alternate-file 'disabled nil)
+
+;(setenv "PATH" (shell-command-to-string "bash -l -c 'echo -n $PATH'"))
