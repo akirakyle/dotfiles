@@ -3,11 +3,9 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-enabled-themes nil)
  '(doc-view-continuous t)
  '(evil-shift-width 2)
  '(shell-file-name "/usr/local/bin/bash"))
-(setq ring-bell-function 'ignore)
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -15,7 +13,11 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
-(add-to-list 'default-frame-alist '(fullscreen . maximized))
+;(add-to-list 'default-frame-alist '(fullscreen . maximized))
+(add-to-list 'default-frame-alist '(height . 60))
+(add-to-list 'default-frame-alist '(width . 100))
+(setq ring-bell-function 'ignore)
+(put 'dired-find-alternate-file 'disabled nil)
 
 (require 'package)  ;; should be first in .emacs file
   (push '("marmalade" . "http://marmalade-repo.org/packages/")
@@ -24,26 +26,26 @@
         package-archives)
 (package-initialize)
 
+(require 'exec-path-from-shell)
 (when (memq window-system '(mac ns))
   (exec-path-from-shell-initialize))
 
+(require 'sml-mode)
+(require 'c0-mode)
+(require 'magit)
+(require 'smooth-scrolling)
+(require 'better-defaults)
+
+;; other good themes:
+;; cyberpunk-theme, monokai-theme, zen-and-art-theme, firecode-theme
 (load-theme `base16-pop-dark t)
 
+(require 'highlight-numbers)
 (add-hook 'prog-mode-hook 'highlight-numbers-mode)
 
-(global-visual-line-mode 1)
+(global-visual-line-mode 1) ;; enable line wrapping at word breaks
 
-;; Line numbers
-;(global-linum-mode t)
-;(unless window-system
-    ;(add-hook 'linum-before-numbering-hook
-        ;(lambda ()
-            ;(setq-local linum-format
-                ;(let ((w (length (number-to-string
-                                 ;(count-lines (point-min) (point-max))))))
-                ;(concat " %" (number-to-string w) "d " ))))))
-
-;; Horizontal cursor line and customize its appearance (to be like vim's cursor line)
+;; Horizontal cursor line and customize its appearance
 (global-hl-line-mode 1)
 (set-face-background 'highlight (face-attribute 'default :background))
 (set-face-foreground 'highlight nil)
@@ -62,13 +64,11 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace) ;; No trailing spaces
 (setq require-final-newline t) ;; Good practice.
 (setq-default indent-tabs-mode nil) ;; Don't indent with tabs.
-(setq inhibit-splash-screen t); Disable splash screen
-
+(setq inhibit-splash-screen t) ;; Disable splash screen
 
 (require 'whitespace)
-(setq whitespace-line-column 80) ;; limit line length
+(setq whitespace-line-column 80) ;; highlight lines over 80 chars
 (setq whitespace-style '(face lines-tail))
-
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
 ;; Evil Setup
@@ -91,14 +91,17 @@
 (define-key evil-normal-state-map (kbd "j") 'evil-next-visual-line)
 (define-key evil-normal-state-map (kbd "k") 'evil-previous-visual-line)
 
-;; Fixes 'Invalid function: evil-without-input-method-hooks' error when using evil search
+;; Fixes bug when using evil seach
 (evil-select-search-module 'evil-search-module 'evil-search)
 
+(require 'xclip)
 (xclip-mode 1) ;; copy and paste to system clipboard
 
 ;; use ido to open files
 (define-key evil-ex-map "e " 'ido-find-file)
 (define-key evil-ex-map "b " 'ido-switch-buffer)
+
+(evil-ex-define-cmd "bd[elete]" 'kill-buffer) ;; so bd doesn't close window
 
 (global-set-key (kbd "C-?") 'help-command)
 (global-set-key (kbd "M-?") 'mark-paragraph)
@@ -123,10 +126,25 @@
 (define-key evil-visual-state-map "\C-p" 'evil-previous-line)
 (define-key evil-normal-state-map (kbd ";") 'evil-ex)
 
+;; flycheck
+(require 'flycheck)
+(add-hook 'after-init-hook #'global-flycheck-mode)
+
+;(require 'ycmd)
+;(add-hook 'after-init-hook #'global-ycmd-mode)
+;(add-to-list 'load-path "~/.emacs.d/ac-ycmd/")
+;(require 'auto-complete-ycmd)
+;(ac-ycmd-setup)
+
+(require 'helm)
+;(require 'ac-helm)
+;(global-set-key (kbd "C-:") 'ac-complete-with-helm)
+;j(define-key ac-complete-mode-map (kbd "C-:") 'ac-complete-with-helm)
+
 ;; auto-complete config
 (require 'auto-complete)
 (require 'ac-math)
-(setq ac-disable-faces nil) ; auto-complete inside stuff like comments and strings
+(setq ac-disable-faces nil) ;; ac inside stuff like comments and strings
 (add-to-list 'ac-modes 'latex-mode)
 (add-to-list 'ac-modes 'sml-mode)
 (add-to-list 'ac-modes 'c0-mode)
@@ -137,11 +155,13 @@
 
 (defun ac-latex-mode-setup ()         ; add ac-sources to default ac-sources
   (setq ac-sources
-     (append '(ac-source-math-unicode ac-source-math-latex ac-source-latex-commands)
-               ac-sources)))
+        (append '(ac-source-math-unicode
+                  ac-source-math-latex
+                  ac-source-latex-commands) ac-sources)))
 
 (add-hook 'TeX-mode-hook 'ac-latex-mode-setup)
-(add-hook 'doc-view-mode-hook 'auto-revert-mode) ; so I can use docview and auctex together!
+;; use auctex and docview together (docview updates itself)
+(add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
 (ac-flyspell-workaround) ; fixes a known bug of delay due to flyspell (if it is there)
 ;(require 'auto-complete-config) ; should be after add-to-list 'ac-modes and hooks
@@ -153,9 +173,7 @@
 
 ;; AucTex config
 (setq TeX-PDF-mode t)
-;(setq TeX-auto-save t)
 (setq TeX-parse-self t)
-;(setq-default TeX-master nil) ; relevant to multifile tex projects
 (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
 
 (add-hook 'LaTeX-mode-hook 'flyspell-mode)
@@ -199,12 +217,6 @@
   (interactive)
   (save-buffer)
   (TeX-command-master) )
-  ;(interactive)
-  ;(save-buffer)
-  ;(tex-file)
-  ;(message nil)
-  ;(other-window 1)
-  ;(delete-window) )
 
 (defun save-and-recompile()
   (interactive)
@@ -227,30 +239,6 @@
 (evil-leader/set-key "SPC" 'evil-ex-nohighlight)
 
 ;; Setup for c0-mode
-;;(setq c0-root "/afs/andrew/course/15/122/")
-;;(load (concat c0-root "c0-mode/c0.el"))
 (setq c0-root "/usr/local/cc0/")
 (load (concat c0-root "c0-mode/c0.el"))
 (require 'cl) ;; require comomn lisp
-
-;(defun copy-from-osx ()
-;  "Handle copy/paste intelligently on osx."
-;  (let ((pbpaste (purecopy "/usr/bin/pbpaste")))
-;    (if (and (eq system-type 'darwin)
-;             (file-exists-p pbpaste))
-;        (let ((tramp-mode nil)
-;              (default-directory "~"))
-;          (shell-command-to-string pbpaste)))))
-;
-;(defun paste-to-osx (text &optional push)
-;  (let ((process-connection-type nil))
-;    (let ((proc (start-process "pbcopy" "*Messages*" "pbcopy")))
-;      (process-send-string proc text)
-;      (process-send-eof proc))))
-
-;(setq interprogram-cut-function 'paste-to-osx)
-;(setq interprogram-paste-function 'copy-from-osx)
-
-(put 'dired-find-alternate-file 'disabled nil)
-
-;(setenv "PATH" (shell-command-to-string "bash -l -c 'echo -n $PATH'"))
