@@ -12,8 +12,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
-;(add-to-list 'default-frame-alist '(fullscreen . maximized))
+ '(company-scrollbar-bg ((t (:background "#191919"))))
+ '(company-scrollbar-fg ((t (:background "#0c0c0c"))))
+ '(company-tooltip ((t (:inherit default :background "#050505"))))
+ '(company-tooltip-common ((t (:inherit font-lock-constant-face))))
+ '(company-tooltip-selection ((t (:inherit font-lock-function-name-face)))))
+
 (add-to-list 'default-frame-alist '(height . 60))
 (add-to-list 'default-frame-alist '(width . 100))
 (setq ring-bell-function 'ignore)
@@ -26,19 +30,17 @@
         package-archives)
 (package-initialize)
 
+(load-theme `base16-pop-dark t)
+; other good themes:
+; cyberpunk-theme, monokai-theme, zen-and-art-theme, firecode-theme
+
 (require 'exec-path-from-shell)
 (when (memq window-system '(mac ns))
   (exec-path-from-shell-initialize))
 
-(require 'sml-mode)
-(require 'c0-mode)
-(require 'magit)
-(require 'smooth-scrolling)
 (require 'better-defaults)
-
-;; other good themes:
-;; cyberpunk-theme, monokai-theme, zen-and-art-theme, firecode-theme
-(load-theme `base16-pop-dark t)
+(require 'smooth-scrolling)
+(require 'magit)
 
 (require 'highlight-numbers)
 (add-hook 'prog-mode-hook 'highlight-numbers-mode)
@@ -64,21 +66,28 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace) ;; No trailing spaces
 (setq require-final-newline t) ;; Good practice.
 (setq-default indent-tabs-mode nil) ;; Don't indent with tabs.
-(setq inhibit-splash-screen t) ;; Disable splash screen
+(setq inhibit-startup-screen t) ;; Disable startup screen
 
 (require 'whitespace)
 (setq whitespace-line-column 80) ;; highlight lines over 80 chars
 (setq whitespace-style '(face lines-tail))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
+(require 'rainbow-delimiters)
+(add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
+
+;; enable code folding
+(add-hook 'prog-mode-hook 'hs-minor-mode)
+
 ;; Evil Setup
 (require 'evil-leader)
 (global-evil-leader-mode)
-
 (evil-leader/set-leader ",")
+(evil-leader/set-key "SPC" 'evil-ex-nohighlight)
 
 (require 'evil)
-  (evil-mode 1)
+(evil-mode 1)
+(setq evil-move-cursor-back nil)
 
 (require 'powerline-evil)  ;; vim like status bar
 (powerline-evil-vim-color-theme)
@@ -88,20 +97,16 @@
 (key-chord-mode 1)
 (key-chord-define evil-insert-state-map  "jj" 'evil-normal-state)
 
+(define-key evil-normal-state-map (kbd ";") 'evil-ex)
 (define-key evil-normal-state-map (kbd "j") 'evil-next-visual-line)
 (define-key evil-normal-state-map (kbd "k") 'evil-previous-visual-line)
 
-;; Fixes bug when using evil seach
-(evil-select-search-module 'evil-search-module 'evil-search)
-
-(require 'xclip)
-(xclip-mode 1) ;; copy and paste to system clipboard
-
-;; use ido to open files
-(define-key evil-ex-map "e " 'ido-find-file)
-(define-key evil-ex-map "b " 'ido-switch-buffer)
+(evil-define-key 'normal dired-mode-map (kbd ";") 'evil-ex)
 
 (evil-ex-define-cmd "bd[elete]" 'kill-buffer) ;; so bd doesn't close window
+
+;; Fixes bug when using evil seach
+(evil-select-search-module 'evil-search-module 'evil-search)
 
 (global-set-key (kbd "C-?") 'help-command)
 (global-set-key (kbd "M-?") 'mark-paragraph)
@@ -124,121 +129,141 @@
 (define-key evil-normal-state-map "\C-p" 'evil-previous-line)
 (define-key evil-insert-state-map "\C-p" 'evil-previous-line)
 (define-key evil-visual-state-map "\C-p" 'evil-previous-line)
-(define-key evil-normal-state-map (kbd ";") 'evil-ex)
 
-;; flycheck
-(require 'flycheck)
-(add-hook 'after-init-hook #'global-flycheck-mode)
+(add-hook 'comint-mode-hook
+          (lambda ()
+            (define-key evil-insert-state-map "\C-p" 'comint-previous-input)
+            (define-key evil-insert-state-map "\C-n" 'comint-next-input)
+            (define-key evil-normal-state-map "\C-p" 'comint-previous-input)
+            (define-key evil-normal-state-map "\C-n" 'comint-next-input)))
 
-;(require 'ycmd)
-;(add-hook 'after-init-hook #'global-ycmd-mode)
-;(add-to-list 'load-path "~/.emacs.d/ac-ycmd/")
-;(require 'auto-complete-ycmd)
-;(ac-ycmd-setup)
-
+(require 'helm-config)
 (require 'helm)
-;(require 'ac-helm)
-;(global-set-key (kbd "C-:") 'ac-complete-with-helm)
-;j(define-key ac-complete-mode-map (kbd "C-:") 'ac-complete-with-helm)
+(helm-mode 1)
+(define-key evil-ex-map "e " 'helm-find-files)
+(define-key evil-ex-map "b " 'helm-buffers-list)
+(define-key evil-ex-map "mx " 'helm-M-x)
+(evil-leader/set-key "x" 'helm-M-x)
+(global-set-key (kbd "M-x") 'helm-M-x)
+(define-key helm-map (kbd "C-h") 'helm-ff-delete-char-backward)
+(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
+(setq helm-mode-fuzzy-match t)
+(setq helm-completion-in-region-fuzzy-match t)
+(setq helm-split-window-in-side-p t)
+(helm-autoresize-mode t)
+(setq helm-autoresize-max-height 35)
+(setq helm-autoresize-min-height 35)
 
-;; auto-complete config
-(require 'auto-complete)
-(require 'ac-math)
-(setq ac-disable-faces nil) ;; ac inside stuff like comments and strings
-(add-to-list 'ac-modes 'latex-mode)
-(add-to-list 'ac-modes 'sml-mode)
-(add-to-list 'ac-modes 'c0-mode)
-(add-to-list 'ac-modes 'c-mode)
-(add-to-list 'ac-modes 'c++-mode)
-(add-to-list 'ac-modes 'makefile-mode)
-(add-to-list 'ac-modes 'makefile-bsdmake-mode)
+(require 'yasnippet)
+(yas-global-mode 1)
 
-(defun ac-latex-mode-setup ()         ; add ac-sources to default ac-sources
-  (setq ac-sources
-        (append '(ac-source-math-unicode
-                  ac-source-math-latex
-                  ac-source-latex-commands) ac-sources)))
+(require 'semantic)
+(global-semanticdb-minor-mode 1)
+(global-semantic-idle-scheduler-mode 1)
+(global-semantic-stickyfunc-mode 1)
+(semantic-mode 1)
 
-(add-hook 'TeX-mode-hook 'ac-latex-mode-setup)
-;; use auctex and docview together (docview updates itself)
-(add-hook 'doc-view-mode-hook 'auto-revert-mode)
+(require 'company)
+(add-hook 'after-init-hook 'global-company-mode)
+(define-key company-active-map "\C-h" nil)
+(define-key company-active-map (kbd "C-?") 'company-show-doc-buffer)
+(define-key company-active-map (kbd "C-n") 'company-select-next)
+(define-key company-active-map (kbd "C-p") 'company-select-previous)
+;(define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)
+(setq company-selection-wrap-around t)
+(setq company-idle-delay 0)
+(setq company-echo-delay 0)
+(setq company-show-numbers t)
+(setq company-minimum-prefix-length 2)
 
-(ac-flyspell-workaround) ; fixes a known bug of delay due to flyspell (if it is there)
-;(require 'auto-complete-config) ; should be after add-to-list 'ac-modes and hooks
-(ac-config-default)
-(setq ac-auto-show-menu    t)
-(setq ac-delay             0)
-(setq ac-show-menu-immediately-on-auto-complete t)
-(global-auto-complete-mode t)
+; disable company mode in shells
+(add-hook 'comint-mode-hook (lambda () (company-mode 0)))
+
+;(require 'company-flx)
+;(company-flx-mode 1) ; if slow set company-flx-limit lower
+
+(defvar my-backends
+      '(company-capf
+        company-files
+        company-keywords
+        company-yasnippet))
+
+(setq company-backends (list my-backends 'company-dabbrev))
+
+(require 'company-c-headers)
+(add-hook 'c-mode-hook
+          (lambda ()
+            (setq-local company-backends
+                        (list (cons 'company-semantic
+                                    (cons 'company-c-headers my-backends))
+                              'company-dabbrev))))
+(add-hook 'c++-mode-hook
+          (lambda ()
+            (setq-local company-backends
+                        (list (cons 'company-semantic
+                                    (cons 'company-c-headers my-backends))
+                              'company-dabbrev))))
+
+(require 'company-jedi)
+(add-hook 'python-mode-hook
+          (lambda ()
+            (add-to-list (make-local-variable 'company-backends)
+                         'company-jedi)))
+
+(require 'company-math)
+(add-hook 'LaTeX-mode-hook ; add to other modes for unicode math symbols
+          (lambda ()
+            (add-to-list (make-local-variable 'company-backends)
+                         'company-math-symbols-unicode)))
+
+(require 'company-auctex)
+;(company-auctex-init) ; we manually add backends below instead
+(add-hook 'LaTeX-mode-hook
+          (lambda ()
+            (add-to-list (make-local-variable 'company-backends)
+                         'company-auctex-labels)
+            (add-to-list (make-local-variable 'company-backends)
+                         'company-auctex-bibs)
+            (add-to-list (make-local-variable 'company-backends)
+                         '(company-auctex-macros
+                           company-auctex-symbols
+                           company-auctex-environments))))
+
+;(require 'company-quickhelp)
+;(company-quickhelp-mode 1)
+;(define-key company-quickhelp-mode-map (kbd "C-n") 'company-select-next)
+;(define-key company-quickhelp-mode-map (kbd "C-p") 'company-select-previous)
+;(setq pos-tip-foreground-color "#839496")
+;(setq pos-tip-background-color "#050505")
+
+(require 'flycheck)
+(add-hook 'after-init-hook 'global-flycheck-mode)
+(evil-leader/set-key "n" 'flycheck-next-error)
+(evil-leader/set-key "p" 'flycheck-previous-error)
+
+(add-hook 'LaTeX-mode-hook 'flyspell-mode)
+(add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
 ;; AucTex config
 (setq TeX-PDF-mode t)
 (setq TeX-parse-self t)
 (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
 
-(add-hook 'LaTeX-mode-hook 'flyspell-mode)
-(add-hook 'lisp-mode (lambda () (flyspell-prog-mode)))
-(add-hook 'c++-mode-hook (lambda () (flyspell-prog-mode)))
-(add-hook 'c-mode (lambda () (flyspell-prog-mode)))
-(add-hook 'python-mode (lambda () (flyspell-prog-mode)))
-(add-hook 'sml-mode (lambda () (flyspell-prog-mode)))
-(add-hook 'c0-mode (lambda () (flyspell-prog-mode)))
+(add-hook 'prog-mode-hook (lambda ()
+                            (evil-leader/set-key "e" (lambda ()
+                                                       (interactive)
+                                                       (save-buffer)
+                                                       (recompile)))))
 
-(defun exec-python()
-  (interactive)
-  (when (get-process "Python")
-      (delete-process "Python"))
-  (when (get-buffer "*Python*")
-    (switch-to-buffer "*Python*")
-    (erase-buffer)
-    (switch-to-buffer (other-buffer)) )
-  (python-shell-get-or-create-process "/usr/bin/python -i" nil t)
-  (python-shell-send-file (buffer-file-name))
-  (other-window 1) )
-
-(defun exec-sml()
-  (interactive)
-  (when (get-process "sml")
-      (delete-process "sml"))
-  (when (get-buffer "*sml*")
-    (switch-to-buffer "*sml*")
-    (erase-buffer)
-    (switch-to-buffer (other-buffer)) )
-  (sml-prog-proc-load-file (buffer-name))
-  ;(call-interactively (global-key-binding "RET"))
-  ;(choose-completion)
-  ;(exit-minibuffer)
-  (other-window 1) )
-  ;(when (> (count-windows) 1)
-  ;  (other-window 1) ) )
-
-
-(defun exec-latex()
-  (interactive)
-  (save-buffer)
-  (TeX-command-master) )
-
-(defun save-and-recompile()
-  (interactive)
-  (save-buffer)
-  (recompile) )
-
-(defun halve-other-window-height ()
-  "Expand current window to use half of the other window's lines."
-  (interactive)
-  (enlarge-window (/ (window-height (next-window)) 2)))
-
-(evil-leader/set-key-for-mode 'python-mode "e" 'exec-python)
-(evil-leader/set-key-for-mode 'latex-mode "e" 'exec-latex)
-(evil-leader/set-key-for-mode 'c0-mode "e" 'save-and-recompile)
-(evil-leader/set-key-for-mode 'c-mode "e" 'save-and-recompile)
-(evil-leader/set-key-for-mode 'c++-mode "e" 'save-and-recompile)
-(evil-leader/set-key-for-mode 'sml-mode "e" 'exec-sml)
-
-(evil-leader/set-key "r" 'halve-other-window-height)
-(evil-leader/set-key "SPC" 'evil-ex-nohighlight)
-
+(evil-leader/set-key-for-mode 'latex-mode "e" (lambda ()
+                                                (interactive)
+                                                (save-buffer)
+                                                (TeX-command-master)) )
 ;; Setup for c0-mode
+(require 'c0-mode)
 (setq c0-root "/usr/local/cc0/")
 (load (concat c0-root "c0-mode/c0.el"))
 (require 'cl) ;; require comomn lisp
+
+(require 'sml-mode)
+
