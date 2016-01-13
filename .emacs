@@ -3,9 +3,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(doc-view-continuous t)
- '(evil-shift-width 2)
- '(shell-file-name "/usr/local/bin/bash"))
+ '(doc-view-continuous t))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -22,6 +20,7 @@
 (add-to-list 'default-frame-alist '(width . 100))
 (setq ring-bell-function 'ignore)
 (put 'dired-find-alternate-file 'disabled nil)
+(setq dired-listing-switches "-alh")
 
 (require 'package)  ;; should be first in .emacs file
   (push '("marmalade" . "http://marmalade-repo.org/packages/")
@@ -51,7 +50,7 @@
 (global-hl-line-mode 1)
 (set-face-background 'highlight (face-attribute 'default :background))
 (set-face-foreground 'highlight nil)
-(set-face-underline-p 'highlight t)
+(set-face-underline 'highlight t)
 
 ;; set ~/.emacs_saves to be dir for all autosave, recovery, and backup files
 (setq backup-directory-alist `((".*" . "~/.emacs_saves/")))
@@ -114,28 +113,26 @@
 (global-set-key (kbd "M-h") 'backward-kill-word)
 
 ;; keep some of the emacs navigation commands
-(define-key evil-normal-state-map "\C-f" 'evil-forward-char)
-(define-key evil-insert-state-map "\C-f" 'evil-forward-char)
-(define-key evil-insert-state-map "\C-f" 'evil-forward-char)
-(define-key evil-normal-state-map "\C-b" 'evil-backward-char)
-(define-key evil-insert-state-map "\C-b" 'evil-backward-char)
-(define-key evil-visual-state-map "\C-b" 'evil-backward-char)
-(define-key evil-normal-state-map "\C-d" 'evil-delete-char)
-(define-key evil-insert-state-map "\C-d" 'evil-delete-char)
-(define-key evil-visual-state-map "\C-d" 'evil-delete-char)
-(define-key evil-normal-state-map "\C-n" 'evil-next-line)
-(define-key evil-insert-state-map "\C-n" 'evil-next-line)
-(define-key evil-visual-state-map "\C-n" 'evil-next-line)
-(define-key evil-normal-state-map "\C-p" 'evil-previous-line)
-(define-key evil-insert-state-map "\C-p" 'evil-previous-line)
-(define-key evil-visual-state-map "\C-p" 'evil-previous-line)
+(define-key evil-normal-state-map (kbd "C-f") 'evil-forward-char)
+(define-key evil-insert-state-map (kbd "C-f") 'evil-forward-char)
+(define-key evil-insert-state-map (kbd "C-f") 'evil-forward-char)
+(define-key evil-normal-state-map (kbd "C-b") 'evil-backward-char)
+(define-key evil-insert-state-map (kbd "C-b") 'evil-backward-char)
+(define-key evil-visual-state-map (kbd "C-b") 'evil-backward-char)
+(define-key evil-normal-state-map (kbd "C-d") 'evil-delete-char)
+(define-key evil-insert-state-map (kbd "C-d") 'evil-delete-char)
+(define-key evil-visual-state-map (kbd "C-d") 'evil-delete-char)
+(define-key evil-normal-state-map (kbd "C-n") 'evil-next-line)
+(define-key evil-insert-state-map (kbd "C-n") 'evil-next-line)
+(define-key evil-visual-state-map (kbd "C-n") 'evil-next-line)
+(define-key evil-normal-state-map (kbd "C-p") 'evil-previous-line)
+(define-key evil-insert-state-map (kbd "C-p") 'evil-previous-line)
+(define-key evil-visual-state-map (kbd "C-p") 'evil-previous-line)
 
-(add-hook 'comint-mode-hook
-          (lambda ()
-            (define-key evil-insert-state-map "\C-p" 'comint-previous-input)
-            (define-key evil-insert-state-map "\C-n" 'comint-next-input)
-            (define-key evil-normal-state-map "\C-p" 'comint-previous-input)
-            (define-key evil-normal-state-map "\C-n" 'comint-next-input)))
+(evil-define-key 'normal comint-mode-map (kbd "C-P") 'comint-previous-input
+                                         (kbd "C-n") 'comint-next-input)
+(evil-define-key 'insert comint-mode-map (kbd "C-P") 'comint-previous-input
+                                         (kbd "C-n") 'comint-next-input)
 
 (require 'helm-config)
 (require 'helm)
@@ -154,6 +151,10 @@
 (setq helm-autoresize-max-height 35)
 (setq helm-autoresize-min-height 35)
 
+(require 'helm-company)
+(define-key company-mode-map (kbd "C--") 'helm-company)
+(define-key company-active-map (kbd "C--") 'helm-company)
+
 (require 'yasnippet)
 (yas-global-mode 1)
 
@@ -165,7 +166,7 @@
 
 (require 'company)
 (add-hook 'after-init-hook 'global-company-mode)
-(define-key company-active-map "\C-h" nil)
+(define-key company-active-map (kbd "C-h") nil)
 (define-key company-active-map (kbd "C-?") 'company-show-doc-buffer)
 (define-key company-active-map (kbd "C-n") 'company-select-next)
 (define-key company-active-map (kbd "C-p") 'company-select-previous)
@@ -211,23 +212,20 @@
                          'company-jedi)))
 
 (require 'company-math)
-(add-hook 'LaTeX-mode-hook ; add to other modes for unicode math symbols
-          (lambda ()
-            (add-to-list (make-local-variable 'company-backends)
-                         'company-math-symbols-unicode)))
+(setq company-tooltip-align-annotations t)
 
 (require 'company-auctex)
 ;(company-auctex-init) ; we manually add backends below instead
 (add-hook 'LaTeX-mode-hook
           (lambda ()
-            (add-to-list (make-local-variable 'company-backends)
-                         'company-auctex-labels)
-            (add-to-list (make-local-variable 'company-backends)
-                         'company-auctex-bibs)
-            (add-to-list (make-local-variable 'company-backends)
-                         '(company-auctex-macros
-                           company-auctex-symbols
-                           company-auctex-environments))))
+            (make-local-variable 'company-backends)
+            (add-to-list 'company-backends 'company-latex-commands)
+            (add-to-list 'company-backends 'company-math-symbols-latex)
+            (add-to-list 'company-backends 'company-auctex-labels)
+            (add-to-list 'company-backends 'company-auctex-bibs)
+            (add-to-list 'company-backends '(company-auctex-macros
+                                             company-auctex-symbols
+                                             company-auctex-environments))))
 
 ;(require 'company-quickhelp)
 ;(company-quickhelp-mode 1)
@@ -259,11 +257,4 @@
                                                 (interactive)
                                                 (save-buffer)
                                                 (TeX-command-master)) )
-;; Setup for c0-mode
-(require 'c0-mode)
-(setq c0-root "/usr/local/cc0/")
-(load (concat c0-root "c0-mode/c0.el"))
-(require 'cl) ;; require comomn lisp
-
 (require 'sml-mode)
-
