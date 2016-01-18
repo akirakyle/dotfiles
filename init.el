@@ -19,8 +19,41 @@
 (add-to-list 'default-frame-alist '(height . 60))
 (add-to-list 'default-frame-alist '(width . 100))
 (setq ring-bell-function 'ignore)
-(put 'dired-find-alternate-file 'disabled nil)
-(setq dired-listing-switches "-alh")
+(setq inhibit-startup-screen t)
+
+(defconst my-package-list
+  '(better-defaults
+    base16-theme
+    ; other good themes: cyberpunk, monokai, zen-and-art, firecode
+    exec-path-from-shell
+    smooth-scrolling
+    magit
+    highlight-numbers
+    whitespace
+    rainbow-delimiters
+    evil-leader
+    evil
+    powerline-evil
+    key-chord
+    helm
+    helm-company
+    auctex
+    yasnippet
+    semantic
+    company
+    company-auctex
+    company-c-headers
+    company-jedi
+    company-math
+    ;company-quickhelp
+    ;company-flx
+    ;auto-complete
+    ;flx
+    flycheck
+    undo-tree
+    c0-mode
+    sml-mode
+    ))
 
 (require 'package)  ;; should be first in .emacs file
   (push '("marmalade" . "http://marmalade-repo.org/packages/")
@@ -28,21 +61,19 @@
   (push '("melpa" . "http://melpa.milkbox.net/packages/")
         package-archives)
 (package-initialize)
+(setq package-enable-at-startup nil)
+
+(defun install-packages ()
+  (interactive)
+  (unless package-archive-contents
+    (package-refresh-contents))
+  (dolist (package my-package-list)
+    (unless (package-installed-p package)
+      (package-install package))))
+
+;(install-packages)
 
 (load-theme `base16-pop-dark t)
-; other good themes:
-; cyberpunk-theme, monokai-theme, zen-and-art-theme, firecode-theme
-
-(require 'exec-path-from-shell)
-(when (memq window-system '(mac ns))
-  (exec-path-from-shell-initialize))
-
-(require 'better-defaults)
-(require 'smooth-scrolling)
-(require 'magit)
-
-(require 'highlight-numbers)
-(add-hook 'prog-mode-hook 'highlight-numbers-mode)
 
 (global-visual-line-mode 1) ;; enable line wrapping at word breaks
 
@@ -61,11 +92,22 @@
   kept-old-versions 2
   version-control t)
 
+(put 'dired-find-alternate-file 'disabled nil)
+(setq dired-listing-switches "-alh")
+
 (show-paren-mode) ;; Highlights the matching paren.
 (add-hook 'before-save-hook 'delete-trailing-whitespace) ;; No trailing spaces
 (setq require-final-newline t) ;; Good practice.
 (setq-default indent-tabs-mode nil) ;; Don't indent with tabs.
-(setq inhibit-startup-screen t) ;; Disable startup screen
+
+(add-hook 'prog-mode-hook 'hs-minor-mode) ;; enable code folding
+
+(require 'exec-path-from-shell)
+(when (memq window-system '(mac ns))
+  (exec-path-from-shell-initialize))
+
+(require 'highlight-numbers)
+(add-hook 'prog-mode-hook 'highlight-numbers-mode)
 
 (require 'whitespace)
 (setq whitespace-line-column 80) ;; highlight lines over 80 chars
@@ -75,18 +117,15 @@
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
-;; enable code folding
-(add-hook 'prog-mode-hook 'hs-minor-mode)
-
 ;; Evil Setup
+(require 'evil)
+(evil-mode 1)
+(setq evil-move-cursor-back nil)
+
 (require 'evil-leader)
 (global-evil-leader-mode)
 (evil-leader/set-leader ",")
 (evil-leader/set-key "SPC" 'evil-ex-nohighlight)
-
-(require 'evil)
-(evil-mode 1)
-(setq evil-move-cursor-back nil)
 
 (require 'powerline-evil)  ;; vim like status bar
 (powerline-evil-vim-color-theme)
@@ -134,8 +173,9 @@
 (evil-define-key 'insert comint-mode-map (kbd "C-P") 'comint-previous-input
                                          (kbd "C-n") 'comint-next-input)
 
-(require 'helm-config)
 (require 'helm)
+(require 'helm-mode)
+(require 'helm-config)
 (helm-mode 1)
 (define-key evil-ex-map "e " 'helm-find-files)
 (define-key evil-ex-map "b " 'helm-buffers-list)
@@ -243,9 +283,17 @@
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
 ;; AucTex config
+(require 'latex)
 (setq TeX-PDF-mode t)
 (setq TeX-parse-self t)
 (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+
+; temporary  until next AucTex package version released
+(setq LaTeX-math-list '(
+    (nil "impliedby" ("AMS" "Arrows") 10232) ;; #X27F8
+    (nil "implies" ("AMS" "Arrows") 10233) ;; #X27F9
+    (nil "iff" ("AMS" "Arrows") 10234) ;; #X27FA
+    ))
 
 (add-hook 'prog-mode-hook (lambda ()
                             (evil-leader/set-key "e" (lambda ()
@@ -257,4 +305,3 @@
                                                 (interactive)
                                                 (save-buffer)
                                                 (TeX-command-master)) )
-(require 'sml-mode)
