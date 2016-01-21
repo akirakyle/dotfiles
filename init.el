@@ -3,7 +3,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(doc-view-continuous t))
+ '(doc-view-continuous t)
+ '(fill-column 80))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -34,6 +35,7 @@
     evil-leader
     evil
     powerline-evil
+    diminish
     key-chord
     helm
     helm-company
@@ -71,7 +73,7 @@
     (unless (package-installed-p package)
       (package-install package))))
 
-;(install-packages)
+(install-packages)
 
 (load-theme `base16-pop-dark t)
 
@@ -113,6 +115,7 @@
 (setq whitespace-line-column 80) ;; highlight lines over 80 chars
 (setq whitespace-style '(face lines-tail))
 (add-hook 'prog-mode-hook 'whitespace-mode)
+(add-hook 'LaTeX-mode-hook 'whitespace-mode)
 
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
@@ -127,9 +130,14 @@
 (evil-leader/set-leader ",")
 (evil-leader/set-key "SPC" 'evil-ex-nohighlight)
 
-(require 'powerline-evil)  ;; vim like status bar
-(powerline-evil-vim-color-theme)
-(display-time-mode t)
+(require 'powerline-evil)
+;; modified powerline-evil-center-color-theme to get rid of character count
+;; that just took up space. ( I just deleted this (powerline-raw '(10 "%i")) )
+(my-powerline-evil-vim-color-theme)
+
+;(require 'diminish)
+;(eval-after-load "undo-tree" '(diminish 'undo-tree-mode))
+;(eval-after-load "company" '(diminish 'company-mode))
 
 (require 'key-chord)
 (key-chord-mode 1)
@@ -139,7 +147,7 @@
 (define-key evil-normal-state-map (kbd "j") 'evil-next-visual-line)
 (define-key evil-normal-state-map (kbd "k") 'evil-previous-visual-line)
 
-(evil-define-key 'normal dired-mode-map (kbd ";") 'evil-ex)
+;(evil-define-key 'normal dired-mode-map (kbd ";") 'evil-ex)
 
 (evil-ex-define-cmd "bd[elete]" 'kill-buffer) ;; so bd doesn't close window
 
@@ -184,6 +192,7 @@
 (global-set-key (kbd "M-x") 'helm-M-x)
 (define-key helm-map (kbd "C-h") 'helm-ff-delete-char-backward)
 (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
+(define-key helm-map (kbd "C-z")  'helm-select-action)
 (setq helm-mode-fuzzy-match t)
 (setq helm-completion-in-region-fuzzy-match t)
 (setq helm-split-window-in-side-p t)
@@ -223,6 +232,10 @@
 ;(require 'company-flx)
 ;(company-flx-mode 1) ; if slow set company-flx-limit lower
 
+; don't know why this has to be here to work
+(evil-define-key 'normal dired-mode-map (kbd ";") 'evil-ex)
+
+
 (defvar my-backends
       '(company-capf
         company-files
@@ -250,6 +263,12 @@
           (lambda ()
             (add-to-list (make-local-variable 'company-backends)
                          'company-jedi)))
+
+(require 'sml-mode)
+(add-hook 'sml-mode-hook
+          (lambda ()
+            (setq-local company-backends
+                        (list 'company-dabbrev my-backends))))
 
 (require 'company-math)
 (setq company-tooltip-align-annotations t)
