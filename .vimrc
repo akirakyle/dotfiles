@@ -14,9 +14,6 @@ Plugin 'gmarik/Vundle.vim'
 " provides autocompletion
 Plugin 'Valloric/YouCompleteMe'
 
-" lets vim run python and see output asynchronously
-"Plugin 'akyle9/vimRunPython'
-
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -80,19 +77,7 @@ nnoremap j gj
 nnoremap k gk
 nnoremap ; :
 
-nnoremap <leader>m :make! <CR> :copen <CR>
+nnoremap <leader>e :make! <CR> :copen <CR>
 
 " for Python files, use indent, not syntax, for folding
 autocmd BufNewFile,BufRead *.py set foldmethod=indent
-
-autocmd BufNewFile,BufRead *.py nnoremap <leader>e :w <bar> silent execute"!clear;python -i %" <bar> redraw!<CR>
-
-autocmd BufNewFile,BufRead *.cpp nnoremap <leader>e :w <bar> execute"!clear;make;make exec <bar> bash" <bar> redraw!<CR>
-
-autocmd BufNewFile,BufRead *.tex nnoremap <leader>e :w <bar> silent execute"!clear;pdflatex %" <bar> redraw!<CR>
-
-autocmd BufNewFile,BufRead *.sml nnoremap <leader>e :w <bar> execute"!clear;rlwrap sml %" <bar> redraw!<CR>
-
-autocmd BufRead,BufNewFile *.c0 set filetype=c0
-
-autocmd BufNewFile,BufRead *.c0 nnoremap <leader>e :w <bar> execute"!clear;make;make progName <bar> bash" <bar> redraw!<CR>
