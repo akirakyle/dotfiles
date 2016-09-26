@@ -71,7 +71,8 @@ set lazyredraw  "Don't redraw while running macros (faster)
 autocmd BufWritePre * :%s/\s\+$//e
 
 nnoremap <leader><space> :nohlsearch<CR>    " turns off search highlight
-inoremap jj <Esc>
+inoremap tn <Esc>
+inoremap nt <Esc>
 " Fix annoying line-skipping behavior on long lines
 nnoremap j gj
 nnoremap k gk
