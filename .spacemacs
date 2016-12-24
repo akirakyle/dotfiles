@@ -18,12 +18,16 @@ values."
    ;; of a list then all discovered layers will be installed.
    dotspacemacs-configuration-layers
    '(
+     html
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
-     auto-completion
+     (auto-completion :variables
+                      auto-completion-enable-help-tooltip t
+                      auto-completion-enable-snippets-in-popup t
+                      )
      ycmd
      better-defaults
      emacs-lisp
@@ -31,14 +35,20 @@ values."
      markdown
      org
      (shell :variables
-            shell-default-height 30
-            shell-default-position 'bottom)
+            shell-default-height 40
+            shell-default-position 'bottom
+            shell-default-full-span nil
+            ;shell-default-shell 'shell
+            )
      spell-checking
      syntax-checking
      version-control
      latex
+     c-c++
      python
      ipython-notebook
+     pdf-tools
+     csv
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -47,6 +57,10 @@ values."
    dotspacemacs-additional-packages
    '(
      (company-simple-complete :location local)
+     (cuda-mode)
+     (latex-preview-pane)
+     (ob-ipython)
+     (company-math)
    )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages '()
@@ -141,7 +155,7 @@ values."
    ;; Emacs commands (M-x).
    ;; By default the command key is `:' so ex-commands are executed like in Vim
    ;; with `:' and Emacs commands are executed with `<leader> :'.
-   dotspacemacs-command-key ":"
+   dotspacemacs-command-key "SPC" ;":"
    ;; If non nil `Y' is remapped to `y$'. (default t)
    dotspacemacs-remap-Y-to-y$ t
    ;; Name of the default layout (default "Default")
@@ -188,7 +202,7 @@ values."
    dotspacemacs-loading-progress-bar t
    ;; If non nil the frame is fullscreen when Emacs starts up. (default nil)
    ;; (Emacs 24.4+ only)
-   dotspacemacs-fullscreen-at-startup nil
+   dotspacemacs-fullscreen-at-startup t
    ;; If non nil `spacemacs/toggle-fullscreen' will not use native fullscreen.
    ;; Use to disable fullscreen animations in OSX. (default nil)
    dotspacemacs-fullscreen-use-non-native nil
@@ -259,11 +273,13 @@ you should place your code here."
     (define-key key-translation-map (kbd "C-h") (kbd "<DEL>"))
     ;(define-key evil-insert-state-map (kbd "C-h") 'backward-delete-char-untabify)
     ;(define-key global-map "\C-h" 'backward-delete-char-untabify)
-    (setq-default evil-escape-key-sequence "tn")
+    (setq-default evil-escape-key-sequence "oe")
     (setq-default evil-escape-unordered-key-sequence t)
     (setq-default evil-move-cursor-back nil)
     (define-key evil-normal-state-map (kbd "j") 'evil-next-visual-line)
     (define-key evil-normal-state-map (kbd "k") 'evil-previous-visual-line)
+
+    ;(spacemacs/toggle-fill-column-indicator-on)
 
     (with-eval-after-load 'helm
       (dolist (keymap (list helm-find-files-map helm-read-file-map))
@@ -271,15 +287,72 @@ you should place your code here."
         (define-key keymap (kbd "M-c") 'helm-ff-run-copy-file)
         (define-key keymap (kbd "M-r") 'helm-ff-run-rename-file)
         (define-key keymap (kbd "M-d") 'helm-ff-run-delete-file)
-        ))
+        )
+      (define-key helm-buffer-map (kbd "M-d") 'helm-buffer-run-kill-buffers)
+      )
     (setq org-agenda-files (list "~/Documents/todo.org"
                                  "~/Documents/class-todo.org"))
 
+    (with-eval-after-load 'org
+      (spacemacs/set-leader-keys-for-major-mode 'org-mode
+        "v" 'org-toggle-latex-fragment))
+
+    (require 'ob-ipython)
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((ipython . t)
+       ;; other languages..
+       ))
+    ;;don't prompt me to confirm everytime I want to evaluate a block
+    (setq org-confirm-babel-evaluate nil)
+
+    ;; display/update images in the buffer after I evaluate
+    (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+
+    (require 'ox-latex)
+    (add-to-list 'org-latex-packages-alist '("" "minted"))
+    (setq org-latex-listings 'minted)
+
+    (add-to-list 'org-latex-minted-langs '(ipython "python"))
 
     (with-eval-after-load 'company
     (require 'company-simple-complete)
     (set-variable 'ycmd-server-command
                   '("python" "/Users/akyle/Developer/git-repos/ycmd/ycmd"))
+
+    (company-ycmd-setup)
+
+    (defun set-my-prog-backends ()
+      (interactive)
+      (setq-local  company-backends '((company-dabbrev-code
+                               company-gtags
+                               company-etags
+                               company-keywords
+                               :with company-yasnippet)
+                               (company-files :with company-yasnippet)
+                               (company-dabbrev :with company-yasnippet))))
+
+    (setq company-backends-org-mode '((company-math-symbols-latex
+                                       company-latex-commands
+                                       company-capf
+                                       :with company-yasnippet)
+                                      (company-dabbrev-code
+                                       company-gtags company-etags
+                                       company-keywords
+                                       :with company-yasnippet)
+                                      (company-files :with company-yasnippet)
+                                      (company-dabbrev :with company-yasnippet)))
+
+    (setq
+    company-dabbrev-downcase nil
+    company-idle-delay 0)
+
+    (defun my-org-mode-hook ()
+      (spacemacs/toggle-smartparens-on)
+      (spacemacs/toggle-auto-fill-mode-on)
+      (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t))
+    (add-hook 'org-mode-hook #'my-org-mode-hook)
+
     ;(global-ycmd-mode)
     ;(ycmd-toggle-force-semantic-completion)
 
@@ -312,15 +385,53 @@ you should place your code here."
     ;        company-preview-frontend
     ;        company-echo-metadata-frontend))
 
-    (setq-default dotspacemacs-configuration-layers
-                  '((auto-completion :variables
-                                     auto-completion-enable-help-tooltip t
-                                     auto-completion-enable-snippets-in-popup t)))
+    (with-eval-after-load 'tramp
+      (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+    )
+
+    (push (cons "\\*shell\\*" display-buffer--same-window-action) display-buffer-alist)
+
+    ;(add-hook 'shell-mode-hook 'my-shell-mode-hook)
+    ;(defun my-shell-mode-hook ()
+    ;  (setq comint-input-ring-file-name "~/.bash_history")
+    ;  (comint-read-input-ring t))
+    ;(defun my-shell-mode-hook ()
+    ;  (let ((histfile  "~/.bash_history"))
+    ;    (if (tramp-tramp-file-p default-directory)
+    ;        (let ((vec (tramp-dissect-file-name default-directory)))
+    ;          (setq comint-input-ring-file-name
+    ;                (tramp-make-tramp-file-name
+    ;                 (tramp-file-name-method vec)
+    ;                 (tramp-file-name-user vec)
+    ;                 (tramp-file-name-host vec)
+    ;                 histfile)))
+    ;      (setq comint-input-ring-file-name histfile)))
+    ;  (comint-read-input-ring t)
+    ;  (let ((process (get-buffer-process (current-buffer))))
+    ;    (set-process-sentinel process #'comint-write-input-ring)))
+
+    (evil-define-key 'normal comint-mode-map (kbd "C-p") 'comint-previous-input
+      (kbd "C-n") 'comint-next-input)
+    (evil-define-key 'insert comint-mode-map (kbd "C-p") 'comint-previous-input
+      (kbd "C-n") 'comint-next-input)
+    (evil-define-key 'normal term-raw-map (kbd "C-p") 'term-send-up
+      (kbd "C-n") 'term-send-down)
+    (evil-define-key 'insert term-raw-map (kbd "C-p") 'term-send-up
+      (kbd "C-n") 'term-send-down)
 
     (setq python-shell-interpreter "ipython"
           python-shell-interpreter-args "--simple-prompt")
 
-    (turn-on-fci-mode)
+    (setq TeX-view-program-selection '((output-pdf "pdf-tools")))
+    (setq TeX-view-program-list '(("pdf-tools" "TeX-pdf-tools-sync-view")))
+    (add-hook 'TeX-after-compilation-finished-functions
+              #'TeX-revert-document-buffer)
+
+    ;(require 'fill-column-indicator)
+    ;(add-hook 'prog-mode-hook 'turn-on-fci-mode)
+    ;(add-hook 'text-mode-hook 'turn-on-fci-mode)
+    (add-hook 'prog-mode-hook 'column-enforce-mode)
+    (add-hook 'text-mode-hook 'column-enforce-mode)
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -330,18 +441,21 @@ you should place your code here."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(TeX-command-extra-options "\"-shell-escape\"")
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(ansi-color-names-vector
    ["#3F3F3F" "#CC9393" "#7F9F7F" "#F0DFAF" "#8CD0D3" "#DC8CC3" "#93E0E3" "#DCDCCC"])
+ '(company-math-allow-latex-symbols-in-faces t)
  '(compilation-message-face (quote default))
  '(cua-global-mark-cursor-color "#2aa198")
  '(cua-normal-cursor-color "#839496")
  '(cua-overwrite-cursor-color "#b58900")
  '(cua-read-only-cursor-color "#859900")
- '(ein:use-auto-complete t)
- '(ein:use-auto-complete-superpack t)
- '(fci-rule-color "#383838")
+ '(ein:slice-image nil)
+ '(ein:use-auto-complete nil)
+ '(ein:use-auto-complete-superpack nil)
+ '(fci-rule-color "#383838" t)
  '(highlight-changes-colors (quote ("#FD5FF0" "#AE81FF")))
  '(highlight-symbol-colors
    (--map
@@ -377,44 +491,84 @@ you should place your code here."
        (alltodo "" nil))
       nil))))
  '(org-agenda-span 10)
- '(package-selected-packages
-   (quote
-    (flycheck-ycmd company-ycmd ycmd request-deferred deferred zenburn-theme monokai-theme solarized-theme ein websocket xterm-color toc-org smeargle shell-pop pyvenv pytest pyenv-mode py-yapf pip-requirements orgit org-repo-todo org-present org-pomodoro alert log4e gntp org-plus-contrib org-bullets multi-term mmm-mode markdown-toc markdown-mode magit-gitflow hy-mode htmlize helm-pydoc helm-gitignore request helm-flyspell helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flycheck-pos-tip flycheck evil-magit magit magit-popup git-commit with-editor eshell-prompt-extras esh-help diff-hl cython-mode company-statistics company-quickhelp pos-tip company-auctex company-anaconda company auto-yasnippet yasnippet auto-dictionary auctex anaconda-mode pythonic f ac-ispell auto-complete ws-butler window-numbering volatile-highlights vi-tilde-fringe spaceline s powerline smooth-scrolling restart-emacs rainbow-delimiters popwin persp-mode pcre2el paradox hydra spinner page-break-lines open-junk-file neotree move-text macrostep lorem-ipsum linum-relative leuven-theme info+ indent-guide ido-vertical-mode hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery expand-region exec-path-from-shell evil-visualstar evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-args evil-anzu anzu eval-sexp-fu highlight elisp-slime-nav define-word clean-aindent-mode buffer-move bracketed-paste auto-highlight-symbol auto-compile packed dash aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async quelpa package-build use-package which-key bind-key bind-map evil spacemacs-theme)))
+ '(org-agenda-window-setup (quote other-window))
+ '(org-edit-src-content-indentation 0)
+ '(org-format-latex-header
+   "\\documentclass{article}
+\\usepackage[usenames]{color}
+[PACKAGES]
+[DEFAULT-PACKAGES]
+\\pagestyle{empty}             % do not remove
+% The settings below are copied from fullpage.sty
+\\setlength{\\textwidth}{\\paperwidth}
+\\addtolength{\\textwidth}{-3cm}
+\\setlength{\\oddsidemargin}{1.5cm}
+\\addtolength{\\oddsidemargin}{-2.54cm}
+\\setlength{\\evensidemargin}{\\oddsidemargin}
+\\setlength{\\textheight}{\\paperheight}
+\\addtolength{\\textheight}{-\\headheight}
+\\addtolength{\\textheight}{-\\headsep}
+\\addtolength{\\textheight}{-\\footskip}
+\\addtolength{\\textheight}{-3cm}
+\\setlength{\\topmargin}{1.5cm}
+\\addtolength{\\topmargin}{-2.54cm}")
+ '(org-latex-caption-above nil)
+ '(org-latex-packages-alist
+(quote
+ (("" "minted" t)
+  ("" "minted" t)
+  ("" "svg" nil)
+  ("margin=1in,headsep=0.4in,headheight=14pt" "geometry" nil)
+  ("" "parskip" nil))))
+'(org-latex-pdf-process
+(quote
+ ("%latex -interaction nonstopmode -shell-escape -output-directory %o %f" "%latex -interaction nonstopmode -shell-escape -output-directory %o %f" "%latex -interaction nonstopmode -shell-escape -output-directory %o %f")))
+ '(org-latex-table-scientific-notation "$%s\\times10^{%s}$")
+ '(org-preview-latex-default-process (quote imagemagick))
+ '(org-src-tab-acts-natively t)
+ '(org-src-window-setup (quote other-window))
+'(package-selected-packages
+(quote
+ (company-math math-symbol-lists web-mode tagedit slim-mode scss-mode sass-mode pug-mode less-css-mode helm-css-scss haml-mode emmet-mode company-web web-completion-data ob-ipython dash-functional org pcache undo-tree hide-comnt disaster company-c-headers cmake-mode clang-format csv-mode latex-preview-pane pdf-tools tablist yapfify uuidgen py-isort org-projectile org-download mwim live-py-mode link-hint git-link flyspell-correct-helm flyspell-correct eyebrowse evil-visual-mark-mode evil-unimpaired evil-ediff eshell-z dumb-jump column-enforce-mode cuda-mode flycheck-ycmd company-ycmd ycmd request-deferred deferred zenburn-theme monokai-theme solarized-theme ein websocket xterm-color toc-org smeargle shell-pop pyvenv pytest pyenv-mode py-yapf pip-requirements orgit org-repo-todo org-present org-pomodoro alert log4e gntp org-plus-contrib org-bullets multi-term mmm-mode markdown-toc markdown-mode magit-gitflow hy-mode htmlize helm-pydoc helm-gitignore request helm-flyspell helm-company helm-c-yasnippet gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gh-md flycheck-pos-tip flycheck evil-magit magit magit-popup git-commit with-editor eshell-prompt-extras esh-help diff-hl cython-mode company-statistics company-quickhelp pos-tip company-auctex company-anaconda company auto-yasnippet yasnippet auto-dictionary auctex anaconda-mode pythonic f ac-ispell auto-complete ws-butler window-numbering volatile-highlights vi-tilde-fringe spaceline s powerline smooth-scrolling restart-emacs rainbow-delimiters popwin persp-mode pcre2el paradox hydra spinner page-break-lines open-junk-file neotree move-text macrostep lorem-ipsum linum-relative leuven-theme info+ indent-guide ido-vertical-mode hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation help-fns+ helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery expand-region exec-path-from-shell evil-visualstar evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-args evil-anzu anzu eval-sexp-fu highlight elisp-slime-nav define-word clean-aindent-mode buffer-move bracketed-paste auto-highlight-symbol auto-compile packed dash aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async quelpa package-build use-package which-key bind-key bind-map evil spacemacs-theme)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(pos-tip-background-color "#A6E22E")
  '(pos-tip-foreground-color "#272822")
+ '(send-mail-function (quote mailclient-send-it))
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
+ '(split-height-threshold 40)
+ '(split-width-threshold 100)
  '(term-default-bg-color "#002b36")
  '(term-default-fg-color "#839496")
+ '(tramp-histfile-override t)
  '(vc-annotate-background "#2B2B2B")
  '(vc-annotate-background-mode nil)
- '(vc-annotate-color-map
-   (quote
-    ((20 . "#BC8383")
-     (40 . "#CC9393")
-     (60 . "#DFAF8F")
-     (80 . "#D0BF8F")
-     (100 . "#E0CF9F")
-     (120 . "#F0DFAF")
-     (140 . "#5F7F5F")
-     (160 . "#7F9F7F")
-     (180 . "#8FB28F")
-     (200 . "#9FC59F")
-     (220 . "#AFD8AF")
-     (240 . "#BFEBBF")
-     (260 . "#93E0E3")
-     (280 . "#6CA0A3")
-     (300 . "#7CB8BB")
-     (320 . "#8CD0D3")
-     (340 . "#94BFF3")
-     (360 . "#DC8CC3"))))
+'(vc-annotate-color-map
+(quote
+ ((20 . "#BC8383")
+  (40 . "#CC9393")
+  (60 . "#DFAF8F")
+  (80 . "#D0BF8F")
+  (100 . "#E0CF9F")
+  (120 . "#F0DFAF")
+  (140 . "#5F7F5F")
+  (160 . "#7F9F7F")
+  (180 . "#8FB28F")
+  (200 . "#9FC59F")
+  (220 . "#AFD8AF")
+  (240 . "#BFEBBF")
+  (260 . "#93E0E3")
+  (280 . "#6CA0A3")
+  (300 . "#7CB8BB")
+  (320 . "#8CD0D3")
+  (340 . "#94BFF3")
+  (360 . "#DC8CC3"))))
  '(vc-annotate-very-old-color "#DC8CC3")
- '(weechat-color-list
-   (unspecified "#272822" "#20240E" "#F70057" "#F92672" "#86C30D" "#A6E22E" "#BEB244" "#E6DB74" "#40CAE4" "#66D9EF" "#FB35EA" "#FD5FF0" "#74DBCD" "#A1EFE4" "#F8F8F2" "#F8F8F0"))
- '(xterm-color-names
-   ["#073642" "#dc322f" "#859900" "#b58900" "#268bd2" "#d33682" "#2aa198" "#eee8d5"])
- '(xterm-color-names-bright
-   ["#002b36" "#cb4b16" "#586e75" "#657b83" "#839496" "#6c71c4" "#93a1a1" "#fdf6e3"]))
+'(weechat-color-list
+(unspecified "#272822" "#20240E" "#F70057" "#F92672" "#86C30D" "#A6E22E" "#BEB244" "#E6DB74" "#40CAE4" "#66D9EF" "#FB35EA" "#FD5FF0" "#74DBCD" "#A1EFE4" "#F8F8F2" "#F8F8F0"))
+'(xterm-color-names
+["#073642" "#dc322f" "#859900" "#b58900" "#268bd2" "#d33682" "#2aa198" "#eee8d5"])
+'(xterm-color-names-bright
+["#002b36" "#cb4b16" "#586e75" "#657b83" "#839496" "#6c71c4" "#93a1a1" "#fdf6e3"]))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
