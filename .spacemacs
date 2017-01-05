@@ -290,8 +290,11 @@ you should place your code here."
         )
       (define-key helm-buffer-map (kbd "M-d") 'helm-buffer-run-kill-buffers)
       )
-    (setq org-agenda-files (list "~/Documents/todo.org"
-                                 "~/Documents/class-todo.org"))
+    (setq org-agenda-files (list "~/Documents/org/todo.org"
+                                 "~/Documents/org/class.org"
+                                 "~/Documents/org/hl.org"
+                                 "~/Documents/org/ignite.org"
+                                 "~/Documents/org/internship.org"))
 
     (with-eval-after-load 'org
       (spacemacs/set-leader-keys-for-major-mode 'org-mode
