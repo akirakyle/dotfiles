@@ -1,0 +1,852 @@
+#+TITLE: dotfiles
+
+http://orgmode.org/worg/org-contrib/babel/intro.html
+
+* general mac config
+Add the ability to quit finder
+#+begin_src sh
+defaults write com.apple.finder QuitMenuItem -bool true
+killall Finder
+#+end_src
+
+increase the key repeat rate
+#+begin_src sh
+defaults write -g InitialKeyRepeat -int 10 # normal minimum is 15 (225 ms)
+defaults write -g KeyRepeat -int 1 # normal minimum is 2 (30 ms)
+#+end_src
+
+crisidev/chunkwm
+
+** Manually add some useful keyboard shortcuts
+In System Preferences under Keyboard > Shortcuts
+- Keyboard > Move focus to status menus : shift cmd /
+- App Shortcuts > Show Help menu : cmd /
+- Remap caps lock to ctrl under Modifier Keys button
+
+** Homebrew
+
+#+begin_src sh
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+#+end_src
+
+#+begin_src bash
+brew tap crisidev/chunkwm
+brew tap koekeishiya/formulae
+#+end_src
+
+#+begin_src bash
+brew install emacs --with-cocoa --with-librsvg --devel
+#+end_src
+
+#+begin_src bash
+brew install chunkwm khd
+#+end_src
+
+#+begin_src bash
+brew install python
+#+end_src
+
+* bootstrap
+download spacemacs
+#+BEGIN_SRC sh
+git clone https://github.com/syl20bnr/spacemacs ~/.emacs.d
+#+END_SRC
+
+copy dotfile
+#+BEGIN_SRC sh
+cp ~/.emacs.d/core/templates/.spacemacs.template ~/.spacemacs
+#+END_SRC
+
+add ~(load-file "~/.spacemacs-advice")~ to top of ~.spacemacs~
+#+BEGIN_SRC sh
+gsed -i '5i(load-file "~/.spacemacs-advice")\n' .spacemacs
+#+END_SRC
+
+* spacemacs
+** layers
+#+NAME: layers
+#+BEGIN_SRC emacs-lisp
+dotspacemacs-configuration-layers
+'(
+  helm
+  auto-completion
+  better-defaults
+  emacs-lisp
+  git
+  markdown
+  org
+  (shell :variables
+        shell-default-position 'full)
+  spell-checking
+  syntax-checking
+  version-control
+  latex
+  c-c++
+  python
+  ipython-notebook
+  pdf-tools
+  csv
+  lua
+  ruby
+  yaml
+  swift
+  javascript
+  typescript
+  sml
+  html
+  )
+#+END_SRC
+
+** packages
+#+NAME: packages
+#+BEGIN_SRC emacs-lisp
+dotspacemacs-additional-packages
+'(
+  ;;(company-simple-complete :location local)
+  (org-export-json :location local)
+  (cuda-mode)
+  (latex-preview-pane)
+  (ob-ipython)
+  (company-math)
+  ;(company-quickhelp) ???
+  (org-caldav :location local)
+  )
+#+END_SRC
+
+#+NAME: excluded-packages
+#+BEGIN_SRC emacs-lisp
+dotspacemacs-excluded-packages '(persp-mode)
+#+END_SRC
+
+** init config 
+#+NAME: init
+#+BEGIN_SRC emacs-lisp
+   dotspacemacs-themes '(spacemacs-dark
+                         spacemacs-light
+                         leuven
+                         monokai
+                         zenburn)
+   dotspacemacs-default-font '("Menlo"
+                               :size 12
+                               :weight normal
+                               :width normal
+                               :powerline-scale 1.1)
+   dotspacemacs-emacs-leader-key "s-SPC"
+   dotspacemacs-enable-paste-transient-state t
+#+END_SRC
+** TODO fix autocomplete and undo issues
+** company
+#+NAME: company
+#+BEGIN_SRC emacs-lisp
+(setq company-math-allow-latex-symbols-in-faces t)
+(setq company-show-numbers t)
+(setq auto-completion-enable-help-tooltip t)
+(setq auto-completion-enable-snippets-in-popup t)
+
+(with-eval-after-load 'company
+  ;;(require 'company-simple-complete)
+  ;;(add-to-list 'company-frontends 'company-tng-frontend)
+
+  (setq company-frontends
+        '(company-tng-frontend
+          company-pseudo-tooltip-frontend
+          ;company-preview-frontend
+          company-echo-metadata-frontend))
+          ;company-quickhelp-frontend))
+
+  (define-key company-active-map (kbd "C-n") 'company-select-next)
+  (define-key company-active-map (kbd "C-p") 'company-select-previous)
+
+  (defun set-my-prog-backends ()
+    (interactive)
+    (setq-local  company-backends '((company-dabbrev-code
+                                      company-gtags
+                                      company-etags
+                                      company-keywords
+                                      :with company-yasnippet)
+                                    (company-files :with company-yasnippet)
+                                    (company-dabbrev :with company-yasnippet))))
+
+  (setq company-backends-org-mode '((company-math-symbols-latex ;unicode ;latex
+                                      company-latex-commands
+                                      company-capf
+                                      :with company-yasnippet)
+                                    (company-dabbrev-code
+                                      company-gtags company-etags
+                                      company-keywords
+                                      :with company-yasnippet)
+                                    (company-files :with company-yasnippet)
+                                    (company-dabbrev :with company-yasnippet)))
+
+  (setq
+    company-dabbrev-downcase nil
+    company-idle-delay 0)
+
+  (push (apply-partially #'cl-remove-if
+                          (lambda (c)
+                            (or (string-match-p "[^\x00-\x7F]+" c)
+                                (string-match-p "[0-9]+" c)
+                                (if (equal major-mode "org")
+                                    (>= (length c) 20)))))
+        company-transformers)
+
+
+  ;;(global-ycmd-mode)
+  ;;(ycmd-toggle-force-semantic-completion)
+  ;;(company-ycmd-setup)
+)
+
+;;(defun my-company-visible-and-explicit-action-p ()
+;;  (and (company-tooltip-visible-p)
+;;       (company-explicit-action-p)))
+;;(with-eval-after-load 'company
+;;(defun company-ac-setup ()
+;;  "Sets up `company-mode' to behave similarly to `auto-complete-mode'."
+;;  (setq company-require-match nil)
+;;  (setq company-auto-complete #'my-company-visible-and-explicit-action-p)
+;;  (setq company-frontends '(company-echo-metadata-frontend
+;;                            company-pseudo-tooltip-unless-just-one-frontend-with-delay
+;;                            company-preview-frontend))
+;;  (define-key company-active-map [tab]
+;;    'company-select-next-if-tooltip-visible-or-complete-selection)
+;;  (define-key company-active-map (kbd "TAB")
+;;    'company-select-next-if-tooltip-visible-or-complete-selection))
+;;(company-ac-setup)
+;;)
+;;(define-key evil-insert-state-map (kbd "C-n") 'company-select-next)
+;;(define-key evil-insert-state-map (kbd "C-p") 'company-select-previous)
+;;(set 'company-auto-complete t)
+;;(setq company-frontends
+;;      '(company-pseudo-tooltip-unless-just-one-frontend
+;;        company-preview-frontend
+;;        company-echo-metadata-frontend))
+#+END_SRC
+** org
+#+NAME: org
+#+BEGIN_SRC emacs-lisp
+(setq org-agenda-files (list "~/Documents/org/todo.org"
+                             "~/Documents/org/class.org"
+                             "~/Documents/org/hl.org"))
+(setq org-agenda-span 10)
+(setq org-edit-src-content-indentation 0)
+(setq org-agenda-window-setup 'current-window)
+(setq org-startup-with-inline-images nil)
+(setq org-src-tab-acts-natively t)
+;(setq org-src-window-setup 'other-window)
+(setq org-src-window-setup 'current-window)
+(setq org-export-with-smart-quotes t)
+
+(require 'smartparens-config)
+(sp-local-pair 'org-mode "$" "$")
+(sp-local-pair 'org-mode '"\\[" "\\]")
+
+(defun my-org-mode-hook ()
+  (spacemacs/toggle-smartparens-on)
+  (spacemacs/toggle-auto-fill-mode-on)
+  (spacemacs//show-trailing-whitespace)
+  (setq-local company-backends 'company-backends-org-mode)
+  (add-hook 'completion-at-point-functions 'pcomplete-completions-at-point nil t))
+(add-hook 'org-mode-hook #'my-org-mode-hook)
+
+(with-eval-after-load 'org
+  (require 'org-export-json)
+  (spacemacs/set-leader-keys-for-major-mode 'org-mode
+    "o" 'org-toggle-latex-fragment)
+
+  (require 'org-caldav)
+  (setq org-caldav-url "https://p32-caldav.icloud.com/206648984/calendars")
+  ;(setq org-caldav-calendar-id "tasks")
+  (setq org-caldav-calendar-id "9750E578-D65C-45D2-B8F8-E33533277712")
+  (setq org-caldav-inbox "~/org/inbox.org")
+  (setq org-caldav-files '("~/org/todo.org"))
+  (setq org-icalendar-include-todo 'all
+        org-caldav-sync-todo t
+        org-icalendar-use-scheduled '(todo-start event-if-todo event-if-not-todo)
+        )
+  (setq org-caldav-todo-deadline-schedule-warning-days t)
+  )
+
+
+(require 'ob-ipython)
+(org-babel-do-load-languages
+  'org-babel-load-languages
+  '(
+    (shell . t)
+    (python . t)
+    (ipython . t)
+    (emacs-lisp . t)
+    ))
+(setq org-confirm-babel-evaluate nil)
+;; display/update images in the buffer after I evaluate
+;;(add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+
+;;(spacemacs|use-package-add-hook ob)
+;; :post-init
+(with-eval-after-load 'org
+  (spacemacs/set-leader-keys-for-major-mode 'org-mode
+    "vp" 'org-babel-previous-src-block
+    "vn" 'org-babel-next-src-block
+    "ve" 'org-babel-execute-maybe
+    "vo" 'org-babel-open-src-block-result
+    "vv" 'org-babel-expand-src-block
+    "vu" 'org-babel-goto-src-block-head
+    "vg" 'org-babel-goto-named-src-block
+    "vr" 'org-babel-goto-named-result
+    "vb" 'org-babel-execute-buffer
+    "vs" 'org-babel-execute-subtree
+    "vd" 'org-babel-demarcate-block
+    "vt" 'org-babel-tangle
+    "vf" 'org-babel-tangle-file
+    "vc" 'org-babel-check-src-block
+    "vj" 'org-babel-insert-header-arg
+    "vl" 'org-babel-load-in-session
+    "vi" 'org-babel-lob-ingest
+    "vI" 'org-babel-view-src-block-info
+    "vz" 'org-babel-switch-to-session-with-code
+    "va" 'org-babel-sha1-hash
+    "vh" 'org-babel-describe-bindings
+    "vx" 'org-babel-do-key-sequence-in-edit-buffer
+    "vk" 'org-babel-remove-result-one-or-many
+    "vm" 'org-babel-mark-block)
+  )
+
+(require 'ox-latex)
+;;(require 'ox-beamer)
+;;(setq org-export-allow-bind-keywords t)
+;;(add-to-list 'org-latex-packages-alist '("" "minted")) added by custom instead
+;;(ox-extras-activate '(ignore-headlines))
+(setq org-latex-listings 'minted)
+
+(add-to-list 'org-latex-minted-langs '(ipython "python"))
+
+(setq org-latex-packages-alist '(("" "lmodern" t)
+                                 ("" "minted" t)
+                                 ("" "svg" nil)
+                                 ;;("margin=1in,headsep=0.4in,headheight=14pt" "geometry" nil)
+                                 ("" "geometry" nil)
+                                 ("" "fancyhdr" nil)
+                                 ("" "parskip" nil)))
+(setq org-file-apps
+      '((auto-mode . emacs)
+        ("\\.mm\\'" . default)
+        ("\\.x?html?\\'" . default)
+        ("\\.pdf\\'" . default)
+        ("\\.png\\'" . "open \"%s\"")
+        ("\\.svg\\'" . "open \"%s\"")))
+
+(setq org-latex-pdf-process
+      '("%latex -interaction nonstopmode -shell-escape -output-directory %o %f" "%latex -interaction nonstopmode -shell-escape -output-directory %o %f" "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"))
+(setq org-latex-table-scientific-notation "$%s\\times10^{%s}$")
+(setq org-preview-latex-default-process 'imagemagick)
+#+END_SRC
+** comint
+#+NAME: comint
+#+BEGIN_SRC emacs-lisp
+(setq shell-default-height 40)
+(setq shell-default-position 'full)
+(setq shell-default-full-span nil)
+(setq shell-default-term-shell "/usr/local/bin/bash")
+;;(setq shell-default-shell 'shell)
+(push (cons "\\*shell\\*" display-buffer--same-window-action) display-buffer-alist)
+;;(setq term-color-black ((t (:foreground "dim gray"))))
+
+(evil-define-key 'normal comint-mode-map (kbd "C-p") 'comint-previous-input
+  (kbd "C-n") 'comint-next-input)
+(evil-define-key 'insert comint-mode-map (kbd "C-p") 'comint-previous-input
+  (kbd "C-n") 'comint-next-input)
+(evil-define-key 'normal term-raw-map (kbd "C-p") 'term-send-up
+  (kbd "C-n") 'term-send-down)
+(evil-define-key 'insert term-raw-map (kbd "C-p") 'term-send-up
+  (kbd "C-n") 'term-send-down)
+
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "--simple-prompt")
+
+(setq python-shell-prompt-detect-failure-warning nil)
+;;(setq python-shell-completion-native-disabled-interpreters '("jupyter" "pypy"))
+
+(with-eval-after-load 'tramp
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+  )
+
+;;(setq tramp-histfile-override t nil (tramp))
+
+;;(add-hook 'shell-mode-hook 'my-shell-mode-hook)
+;;(defun my-shell-mode-hook ()
+;;  (setq comint-input-ring-file-name "~/.bash_history")
+;;  (comint-read-input-ring t))
+;;(defun my-shell-mode-hook ()
+;;  (let ((histfile  "~/.bash_history"))
+;;    (if (tramp-tramp-file-p default-directory)
+;;        (let ((vec (tramp-dissect-file-name default-directory)))
+;;          (setq comint-input-ring-file-name
+;;                (tramp-make-tramp-file-name
+;;                 (tramp-file-name-method vec)
+;;                 (tramp-file-name-user vec)
+;;                 (tramp-file-name-host vec)
+;;                 histfile)))
+;;      (setq comint-input-ring-file-name histfile)))
+;;  (comint-read-input-ring t)
+;;  (let ((process (get-buffer-process (current-buffer))))
+;;    (set-process-sentinel process #'comint-write-input-ring)))
+#+END_SRC
+
+** frames and windows
+#+NAME: frames-windows
+#+BEGIN_SRC emacs-lisp
+(setq pop-up-frames t)
+
+(setq split-height-threshold 40)
+(setq split-width-threshold 100)
+
+(evil-set-initial-state 'term-mode 'emacs)
+
+
+(setq default-frame-alist '(;(undecorated . t)
+                            (buffer-predicate . spacemacs/useful-buffer-p)
+                            (font . "-*-Menlo-normal-normal-normal-*-12-*-*-*-m-0-iso10646-1")
+                            (vertical-scroll-bars)))
+
+(setq frame-resize-pixelwise t)
+;;(setq default-frame-alist '((undecorated . t)))
+;;(add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+;;(add-to-list 'default-frame-alist '(ns-appearance . 'nil)) ; or 'dark, to switch to white title text
+
+;; http://anderspapitto.com/posts/2016-11-02-vanquishing-emacs-display-buffer.html
+(setq display-buffer-alist
+      '(("*shell*" (display-buffer-same-window) ())
+        (".*" (display-buffer-reuse-window
+               display-buffer-same-window
+               display-buffer-pop-up-frame)
+         (reusable-frames . t))))
+
+;;(spacemacs/toggle-fill-column-indicator-on)
+;;(spacemacs/toggle-mode-line-battery-on)
+(setq dired-listing-switches "-alh")
+
+;; TODO implement something like this but across all frames and automatic?
+;;    https://stackoverflow.com/questions/22081714/sync-two-windows-of-emacs-together
+;;    (defun Xsync-window (&optional display-start)
+;;      "Synchronize point position other window in current frame.
+;;      Only works if there are exactly two windows in the active wrame not counting the minibuffer."
+;;      (interactive)
+;;      (when (= (count-windows 'noMiniBuf) 2)
+;;        (let ((p (line-number-at-pos))
+;;              (start (line-number-at-pos (or display-start (window-start))))
+;;              (vscroll (window-vscroll)))
+;;          (other-window 1)
+;;          (goto-char (point-min))
+;;          (setq start (line-beginning-position start))
+;;          (forward-line (1- p))
+;;          (set-window-start (selected-window) start)
+;;          (set-window-vscroll (selected-window) vscroll)
+;;          (other-window 1)
+;;          (unless display-start
+;;            (redisplay t))
+;;          )))
+;;
+;;    (define-minor-mode sync-window-mode
+;;      "Synchronized view of two buffers in two side-by-side windows."
+;;      :group 'windows
+;;      :lighter " ⇕"
+;;      (unless (boundp 'sync-window-mode-active)
+;;        (setq sync-window-mode-active nil))
+;;      (if sync-window-mode
+;;          (progn
+;;            (add-hook 'post-command-hook 'sync-window-wrapper 'append t)
+;;            (add-to-list 'window-scroll-functions 'sync-window-wrapper)
+;;            (Xsync-window))
+;;        (remove-hook 'post-command-hook 'sync-window-wrapper t)
+;;        (setq window-scroll-functions (remove 'sync-window-wrapper window-scroll-functions))))
+;;
+;;    (defun sync-window-wrapper (&optional window display-start)
+;;      "This wrapper makes sure that `sync-window' is fired from `post-command-hook'
+;;    only when the buffer of the active window is in `sync-window-mode'."
+;;      (unless sync-window-mode-active
+;;        (setq sync-window-mode-active t)
+;;        (with-selected-window (or window (selected-window))
+;;          (when sync-window-mode
+;;            (Xsync-window display-start)))
+;;        (setq sync-window-mode-active nil)))
+
+
+#+END_SRC
+** exwm
+#+NAME: exwm
+#+BEGIN_SRC emacs-lisp
+(defun my-startup-processes ()
+  ;;(start-process "volumeicon" nil "volumeicon")
+  (start-process "connman-gtk" nil "connman-gtk")
+  (start-process "cbatticon" nil
+                  "/usr/bin/cbatticon" "-l" "8" "-r" "3" "-i" "symbolic"
+                  "-u" "20" "-c" "\"halt\"")
+  ;;(start-process "gnome-keyring-daemon" nil
+  ;;               "/usr/bin/gnome-keyring-daemon --start --components=secrets")
+  (start-process "evolution-alarm-notify" nil
+                  "/usr/lib/evolution/evolution-alarm-notify")
+  (start-process "mkd.py" nil
+                  "/home/akyle/koel/mediakeys-daemon/src/mkd.py" "-d")
+  ;;(start-process "/usr/lib/notification-daemon-1.0/notification-daemon" nil
+  ;;               "/usr/lib/notification-daemon-1.0/notification-daemon")
+  (start-process "firefox" nil "firefox")
+  (start-process "calendar" nil "gnome-calendar")
+  ;;(start-process "xbindkeys" nil "xbindkeys")
+  )
+
+(setq pdf-misc-print-programm "/home/akyle/dotfiles/print.py")
+#+END_SRC
+** other
+#+NAME: other
+#+BEGIN_SRC emacs-lisp
+(setq confirm-kill-emacs 'yes-or-no-p)
+(setq ispell-program-name "/usr/local/bin/aspell") ; see https://github.com/syl20bnr/spacemacs/issues/9916
+
+(define-key key-translation-map (kbd "C-h") (kbd "<DEL>"))
+;; (define-key evil-insert-state-map (kbd "C-h") 'backward-delete-char-untabify)
+;; (define-key global-map "\C-h" 'backward-delete-char-untabify)
+;; (setq-default evil-escape-key-sequence "oe")
+;; (setq-default evil-escape-unordered-key-sequence t)
+(setq-default evil-move-cursor-back nil)
+(define-key evil-normal-state-map (kbd "j") 'evil-next-visual-line)
+(define-key evil-normal-state-map (kbd "k") 'evil-previous-visual-line)
+
+(setq js-indent-level 2)
+(setq web-mode-markup-indent-offset 2)
+(setq css-indent-offset 2)
+
+(defun calc-eval-region (arg beg end)
+  "Calculate the region and display the result in the echo area.
+With prefix ARG non-nil, insert the result at the end of region."
+  (interactive "P\nr")
+  (let* ((expr (buffer-substring-no-properties beg end))
+          (result (calc-eval expr)))
+    (if (null arg)
+        (message "%s = %s" expr result)
+      (goto-char end)
+      (save-excursion
+        (insert result)))))
+
+(with-eval-after-load 'helm
+  (dolist (keymap (list helm-find-files-map helm-read-file-map))
+    (define-key keymap (kbd "C-.") 'helm-find-files-up-one-level)
+    (define-key keymap (kbd "M-c") 'helm-ff-run-copy-file)
+    (define-key keymap (kbd "M-r") 'helm-ff-run-rename-file)
+    (define-key keymap (kbd "M-d") 'helm-ff-run-delete-file)
+    )
+  (define-key helm-buffer-map (kbd "M-d") 'helm-buffer-run-kill-buffers)
+  (global-set-key (kbd "s-b") 'helm-mini)
+  )
+
+;;(require 'fill-column-indicator)
+;;(add-hook 'prog-mode-hook 'turn-on-fci-mode)
+;;(add-hook 'text-mode-hook 'turn-on-fci-mode)
+(add-hook 'prog-mode-hook 'column-enforce-mode)
+(add-hook 'text-mode-hook 'column-enforce-mode)
+(setq alert-default-style 'libnotify)
+
+(setq
+ ein:slice-image nil
+ ein:use-auto-complete nil
+ ein:use-auto-complete-superpack nil)
+#+END_SRC
+
+** LaTeX
+#+NAME: latex
+#+BEGIN_SRC emacs-lisp
+(setq TeX-view-program-selection '((output-pdf "pdf-tools")))
+(setq TeX-view-program-list '(("pdf-tools" "TeX-pdf-tools-sync-view")))
+(add-hook 'TeX-after-compilation-finished-functions
+          #'TeX-revert-document-buffer)
+(setq TeX-command-extra-options "\"-shell-escape\"")
+
+#+END_SRC
+** dotspacemacs advice
+   :PROPERTIES:
+   :header-args: :noweb yes :tangle ~/.spacemacs-advice
+   :END:
+#+BEGIN_SRC emacs-lisp
+;; -*- mode: emacs-lisp; lexical-binding: t; -*-
+; Do not edit this file directly!
+; This file was generated by running ~org-babel-tangle~ on dotfiles.org
+#+END_SRC
+*** dotspacemacs-layer-advice
+#+BEGIN_SRC emacs-lisp
+(defun dotspacemacs-layers-advice (orig-fun &rest args)
+  "advise dotspacemacs/layers in .spacemacs"
+  (apply orig-fun args)
+  (setq-default
+   <<layers>>
+   <<packages>>
+   <<excluded-packages>>
+   )
+  )
+(advice-add 'dotspacemacs/layers :around #'dotspacemacs-layers-advice)
+#+END_SRC
+
+*** dotspacemacs-init-advice
+#+BEGIN_SRC emacs-lisp
+(defun dotspacemacs-init-advice (orig-fun &rest args)
+  "advise dotspacemacs/init in .spacemacs"
+  (apply orig-fun args)
+  (setq-default
+   <<init>>
+   )
+  )
+(advice-add 'dotspacemacs/init :around #'dotspacemacs-init-advice)
+#+END_SRC
+
+*** dotspacemacs-user-config
+#+BEGIN_SRC emacs-lisp
+(defun dotspacemacs-user-config-advice (orig-fun &rest args)
+  "advise dotspacemacs/user-config in .spacemacs"
+  (apply orig-fun args)
+  <<other>>
+  <<company>>
+  <<org>>
+  <<comint>>
+  <<frames-windows>>
+  <<latex>>
+  ;;<<exwm>>
+  )
+(advice-add 'dotspacemacs/user-config :around #'dotspacemacs-user-config-advice)
+#+END_SRC
+
+* bashrc
+
+#+begin_src bash :tangle ~/.bashrc
+EDITOR="vim"; export EDITOR
+PATH="${PATH}:/usr/local/cc0/bin"; export PATH
+export CLICOLOR=1
+# alias emacs="/Users/akyle/Applications/Emacs.app/Contents/MacOS/Emacs -nw"
+# alias em="emacs"
+alias emacsclient="/Users/akyle/Applications/Emacs.app/Contents/MacOS/bin/emacsclient"
+
+alias ls='ls'
+alias la='ls -lah'
+PS1='[\u@\h \W]\$ '
+
+#bind 'set show-all-if-ambiguous on'
+
+export HOMEBREW_GITHUB_API_TOKEN=ad7784c6e57e2d610c137adea70d5e1bd46ee40e
+
+#alias gcc="gcc-4.8"
+alias smlnj="rlwrap sml"
+alias wanip='dig +short myip.opendns.com @resolver1.opendns.com'
+
+alias pipup="pip freeze --local | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U"
+
+alias prox="networksetup -setsocksfirewallproxystate "Wi-Fi""
+
+alias rmds="find . -name '*.DS_Store' -type f -delete"
+alias backdev="cd ~/Developer && rmds && rsync -azP --del ~/Developer/ spot:mnt/amac/Developer/"
+alias backdoc="cd ~/Documents && rmds && rsync -azP --del ~/Documents/ spot:mnt/amac/Documents/"
+alias backdot="rsync -azP ~/{.bashrc,.bash_profile,.spacemacs,.vimrc,.ssh/config,.ssh/known_hosts} spot:mnt/amac/dotfiles/"
+
+alias downdoc="rsync -azP spot:mnt/amac/Documents/ ~/Documents/"
+
+alias gcc="gcc-7"
+#+end_src
+
+* khdrc
+
+#+begin_src :tangle ~/.khdrc
+# open new emacs frame with new ansi-term mode
+cmd - return : emacsclient -cne "(progn (cd \"~\") (ansi-term \"/usr/local/bin/bash\"))"; open -a Emacs
+
+# I have caps lock remapped to ctrl in System Preferences, this lets it act as escape when pressed and ctrl otherwise
+ctrl : khd -p "- escape"
+
+# remap cmd [ and cmd ] to move left and right one space respectively
+cmd - 0x1B : khd -p "ctrl - left"
+cmd - 0x18 : khd -p "ctrl - right"
+
+# remap alt [ and alt ] to cmd shift [ and cmd shift ] respectively - useful for tab switching
+alt - 0x1B : khd -p "cmd + shift - 0x1B"
+alt - 0x18 : khd -p "cmd + shift - 0x18"
+
+# emacs control b/n/p/f -> arrow keys
+ctrl - n ![Emacs,Terminal] : khd -p "- down"
+ctrl - p ![Emacs,Terminal] : khd -p "- up"
+ctrl - b ![Emacs,Terminal] : khd -p "- left"
+ctrl - f ![Emacs,Terminal] : khd -p "- right"
+
+# switch to last active desktop
+cmd - tab : `id=$(chunkc get _last_active_desktop); khd -p "cmd - $id"`
+
+# set border color for different modes
+khd mode default on_enter chunkc border::color 0xdd4a3a67
+khd mode wm      on_enter chunkc border::color 0xddbdd322
+
+# toggle between modes
+alt - space : khd -e "mode activate wm"
+wm + ctrl   : khd -e "mode activate default"
+
+# focus window
+cmd - h : chunkc tiling::window --focus west
+cmd - j : chunkc tiling::window --focus south
+cmd - k : chunkc tiling::window --focus north
+cmd - l : chunkc tiling::window --focus east
+cmd + shift - j : chunkc tiling::window --focus prev
+cmd + shift - k : chunkc tiling::window --focus next
+
+wm + cmd - h : chunkc tiling::window --focus west
+wm + cmd - j : chunkc tiling::window --focus south
+wm + cmd - k : chunkc tiling::window --focus north
+wm + cmd - l : chunkc tiling::window --focus east
+wm + cmd + shift - j : chunkc tiling::window --focus prev
+wm + cmd + shift - k : chunkc tiling::window --focus next
+
+# swap window
+wm - h : chunkc tiling::window --swap west
+wm - j : chunkc tiling::window --swap south
+wm - k : chunkc tiling::window --swap north
+wm - l : chunkc tiling::window --swap east
+
+# move window
+wm + ctrl - h : chunkc tiling::window --warp west
+wm + ctrl - j : chunkc tiling::window --warp south
+wm + ctrl - k : chunkc tiling::window --warp north
+wm + ctrl - l : chunkc tiling::window --warp east
+
+# change region size
+wm + shift - h : chunkc tiling::window --use-temporary-ratio 0.05 --adjust-window-edge west; chunkc tiling::window --use-temporary-ratio -0.05 --adjust-window-edge east
+wm + shift - j : chunkc tiling::window --use-temporary-ratio 0.05 --adjust-window-edge south; chunkc tiling::window --use-temporary-ratio -0.05 --adjust-window-edge north
+wm + shift - k : chunkc tiling::window --use-temporary-ratio 0.05 --adjust-window-edge north; chunkc tiling::window --use-temporary-ratio -0.05 --adjust-window-edge south
+wm + shift - l : chunkc tiling::window --use-temporary-ratio 0.05 --adjust-window-edge east; chunkc tiling::window --use-temporary-ratio -0.05 --adjust-window-edge west
+wm - 0x1E : chunkc tiling::desktop --equalize # wm - =
+
+# send window to desktop space
+wm - tab : `khd -e "mode activate default"; id=$(chunkc get _last_active_desktop); chunkc tiling::window -d $id; khd -p "cmd - $id"`
+wm - 0x1B : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop prev; khd -p "ctrl - left"
+wm - 0x18 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop next; khd -p "ctrl - right"
+wm - 1 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 1; khd -p "cmd - 1"
+wm - 2 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 2; khd -p "cmd - 2"
+wm - 3 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 3; khd -p "cmd - 3"
+wm - 4 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 4; khd -p "cmd - 4"
+wm - 5 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 5; khd -p "cmd - 5"
+wm - 6 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 6; khd -p "cmd - 6"
+wm - 7 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 7; khd -p "cmd - 7"
+wm - 8 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 8; khd -p "cmd - 8"
+wm - 9 : khd -e "mode activate default"; chunkc tiling::window --send-to-desktop 9; khd -p "cmd - 9"
+
+# other
+wm + cmd - r    :   khd -e "reload"
+
+wm - r : chunkc tiling::desktop --rotate 90
+wm + shift - r : chunkc tiling::desktop --rotate 270
+
+wm - space : chunkc tiling::window --toggle fullscreen
+wm + shift - space : chunkc tiling::window --toggle native-fullscreen
+wm - f : chunkc tiling::window --toggle float
+
+wm + shift - f : chunkc tiling::desktop --layout float
+wm - b : chunkc tiling::desktop --layout bsp
+wm - m : chunkc tiling::desktop --layout monocle
+
+wm - v : chunkc tiling::desktop --mirror vertical
+wm + shift - v : chunkc tiling::desktop --mirror horizontal
+
+wm - o : chunkc tiling::desktop --toggle offset
+wm - p : chunkc tiling::window --toggle parent
+wm - s : chunkc tiling::window --toggle split
+#+end_src
+
+* chunkwmrc
+#+begin_src bash :tangle ~/.chunkwmrc
+#!/bin/bash
+
+#
+# NOTE: specify the absolutepath to the directory to use when
+#       loading a plugin. '~' expansion is supported.
+#
+
+chunkc core::plugin_dir /usr/local/opt/chunkwm/share/chunkwm/plugins
+
+#
+# NOTE: if enabled, chunkwm will monitor the specified plugin_dir
+#       and automatically reload any '.so' file that is changed.
+#
+
+chunkc core::hotload 1
+
+#
+# NOTE: the following are config variables for the chunkwm-tiling plugin.
+#
+
+chunkc set global_desktop_mode           bsp
+
+chunkc set global_desktop_offset_top     10
+chunkc set global_desktop_offset_bottom  10
+chunkc set global_desktop_offset_left    10
+chunkc set global_desktop_offset_right   10
+chunkc set global_desktop_offset_gap     10
+
+chunkc set desktop_padding_step_size     10.0
+chunkc set desktop_gap_step_size         10.0
+
+chunkc set bsp_spawn_left                0
+chunkc set bsp_optimal_ratio             1.5
+chunkc set bsp_split_mode                optimal
+chunkc set bsp_split_ratio               0.5
+
+chunkc set window_focus_cycle            all
+chunkc set mouse_follows_focus           1
+chunkc set window_float_next             0
+chunkc set window_float_center           1
+chunkc set window_region_locked          1
+
+#
+# NOTE: shell commands require escaped quotes
+#       to pass value containing a whitespace.
+#
+# chunkc set mouse_modifier              \"cmd shift\"
+chunkc set mouse_modifier                fn
+
+chunkc set preselect_border_color        0xffd75f5f
+chunkc set preselect_border_width        5
+chunkc set preselect_border_radius       0
+
+#
+# NOTE: these settings require chwm-sa.
+#       (https://github.com/koekeishiya/chwm-sa)
+#
+
+chunkc set window_float_topmost          0
+chunkc set window_fade_inactive          0
+chunkc set window_fade_alpha             0.85
+chunkc set window_fade_duration          0.25
+chunkc set window_use_cgs_move           0
+
+#
+# NOTE: the following are config variables for the chunkwm-border plugin.
+#
+
+chunkc set focused_border_color          0xdd4a3a67
+chunkc set focused_border_width          3
+chunkc set focused_border_radius         5
+chunkc set focused_border_skip_floating  1
+
+#
+# NOTE: specify plugins to load when chunkwm starts.
+#       if chunkc plugin_dir is not set, the absolutepath is necessary.
+#
+
+chunkc core::load border.so
+chunkc core::load ffm.so
+chunkc core::load tiling.so
+
+#
+# NOTE: shell commands require escaped quotes
+#       to pass value containing a whitespace.
+#
+
+chunkc tiling::rule --owner Finder --name Copy --state float
+chunkc tiling::rule --owner "Emacs.*" --except "^$" --state tile
+
+#+end_src
+
+* local variables
+;; Local Variables:
+;; eval: (add-hook 'after-save-hook (lambda ()(org-babel-tangle)) nil t)
+;; End:
+
