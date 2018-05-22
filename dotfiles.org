@@ -627,8 +627,6 @@ PS1='[\u@\h \W]\$ '
 
 #bind 'set show-all-if-ambiguous on'
 
-export HOMEBREW_GITHUB_API_TOKEN=ad7784c6e57e2d610c137adea70d5e1bd46ee40e
-
 #alias gcc="gcc-4.8"
 alias smlnj="rlwrap sml"
 alias wanip='dig +short myip.opendns.com @resolver1.opendns.com'
